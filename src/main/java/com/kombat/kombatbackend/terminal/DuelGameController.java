@@ -52,8 +52,8 @@ public final class DuelGameController {
 
     private DuelGameController(GameConfig config, SetupResult setup) {
         this.config = Objects.requireNonNull(config, "config");
-        this.gs = Objects.requireNonNull(setup.gameState, "gameState");
-        this.mg = Objects.requireNonNull(setup.mock, "mock");
+        this.gs = Objects.requireNonNull(setup.getGameState(), "gameState");
+        this.mg = Objects.requireNonNull(setup.getMock(), "mock");
 
         initDefaultTerritories();
 

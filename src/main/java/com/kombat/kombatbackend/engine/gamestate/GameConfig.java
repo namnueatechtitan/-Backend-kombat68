@@ -1,5 +1,6 @@
 package com.kombat.kombatbackend.engine.gamestate;
-
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
@@ -43,15 +44,18 @@ public final class GameConfig {
     private final long maxTurns;
     private final long maxSpawns;
 
-    public GameConfig(long spawnCost,
-                      long hexPurchaseCost,
-                      long initBudget,
-                      long initHp,
-                      long turnBudget,
-                      long maxBudget,
-                      long interestPct,
-                      long maxTurns,
-                      long maxSpawns) {
+    @JsonCreator
+    public GameConfig(
+            @JsonProperty("spawnCost") long spawnCost,
+            @JsonProperty("hexPurchaseCost") long hexPurchaseCost,
+            @JsonProperty("initBudget") long initBudget,
+            @JsonProperty("initHp") long initHp,
+            @JsonProperty("turnBudget") long turnBudget,
+            @JsonProperty("maxBudget") long maxBudget,
+            @JsonProperty("interestPct") long interestPct,
+            @JsonProperty("maxTurns") long maxTurns,
+            @JsonProperty("maxSpawns") long maxSpawns
+    ) {
         this.spawnCost = nonNegative(spawnCost, "spawn_cost");
         this.hexPurchaseCost = nonNegative(hexPurchaseCost, "hex_purchase_cost");
         this.initBudget = nonNegative(initBudget, "init_budget");
@@ -162,5 +166,13 @@ public final class GameConfig {
                 vals.get(Key.MAX_TURNS),
                 vals.get(Key.MAX_SPAWNS)
         );
-    }
+    } public long getSpawnCost() { return spawnCost; }
+    public long getHexPurchaseCost() { return hexPurchaseCost; }
+    public long getInitBudget() { return initBudget; }
+    public long getInitHp() { return initHp; }
+    public long getTurnBudget() { return turnBudget; }
+    public long getMaxBudget() { return maxBudget; }
+    public long getInterestPct() { return interestPct; }
+    public long getMaxTurns() { return maxTurns; }
+    public long getMaxSpawns() { return maxSpawns; }
 }

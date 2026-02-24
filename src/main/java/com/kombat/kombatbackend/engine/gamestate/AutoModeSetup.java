@@ -28,34 +28,38 @@ public final class AutoModeSetup {
     }
 
     public static SetupResult createGame(GameConfig cfg, List<KindInput> kindInputs) throws SyntaxException {
-        if (cfg == null) cfg = GameConfig.sampleDefaults();
-        if (kindInputs == null || kindInputs.isEmpty()) {
-            throw new IllegalArgumentException("kindInputs must not be empty");
+
+        if (cfg == null) {
+            cfg = GameConfig.sampleDefaults();
         }
 
-        // validate kinds: 3..5 distinct types
+        if (kindInputs == null || kindInputs.isEmpty()) {
+            throw new IllegalArgumentException("Must choose at least 1 minion type.");
+        }
+
+        // validate kinds: 1..5 distinct types
         EnumSet<MinionType> chosen = EnumSet.noneOf(MinionType.class);
+
         for (KindInput in : kindInputs) {
             Objects.requireNonNull(in, "kind input must not be null");
+
             if (!chosen.add(in.type)) {
                 throw new IllegalArgumentException("Duplicate minion type in setup: " + in.type);
             }
         }
-        if (chosen.size() < 3) {
-            throw new IllegalArgumentException("Must choose at least 3 minion types (kinds).");
-        }
+
         if (chosen.size() > 5) {
             throw new IllegalArgumentException("Too many minion types (max 5).");
         }
 
         Board board = new Board();
         BudgetManager budget = new BudgetManager(cfg.initBudget());
-        List<Minion> minions = new ArrayList<Minion>();
+        List<Minion> minions = new ArrayList<>();
 
         GameState gs = new GameState(board, minions, budget, TurnPhase.PLAY, cfg);
         MockGameState mg = new MockGameState(gs);
 
-        // parse strategy + register kind definitions
+        // register kind definitions
         for (KindInput in : kindInputs) {
             Strategy st = new Parser(in.strategyCode, mg).parseStrategy();
             gs.registerKind(new MinionKindDef(in.type, in.kindName, in.defenseFactor, st));

@@ -46,9 +46,8 @@ public final class GameController {
 
     private GameController(GameConfig config, SetupResult setup) {
         this.config = Objects.requireNonNull(config, "config");
-        this.gs = Objects.requireNonNull(setup.gameState, "gameState");
-        this.mg = Objects.requireNonNull(setup.mock, "mock");
-
+        this.gs = Objects.requireNonNull(setup.getGameState(), "gameState");
+        this.mg = Objects.requireNonNull(setup.getMock(), "mock");
         // SpecialVars
         SpecialVars special = new SpecialVars() {
             @Override public long row() {

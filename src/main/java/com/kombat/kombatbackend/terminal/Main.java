@@ -24,26 +24,23 @@ public final class Main {
         String mode = sc.nextLine().trim();
         boolean duel = !mode.equalsIgnoreCase("solo");
 
-        System.out.println("Choose at least 3 types from: Fighter Assasin DPS Tank Support");
-        System.out.println("Example: Fighter DPS Tank");
+        System.out.println("Choose 1-5 types from: Fighter Assasin DPS Tank Support");
+        System.out.println("Example: Fighter DPS");
         List<MinionType> chosen = chooseTypes(sc);
 
         if (duel) {
-            List<KindInput> p1 = new ArrayList<KindInput>();
-            List<KindInput> p2 = new ArrayList<KindInput>();
+            List<KindInput> p1 = new ArrayList<>();
+            List<KindInput> p2 = new ArrayList<>();
 
             for (MinionType t : chosen) {
                 System.out.println();
                 System.out.println("Configure type: " + t.name());
 
-                // shared: defense factor + strategy must be the same for both players (spec)
                 SharedKindCore core = readSharedKindCore(sc, t);
 
-                // per-player: display name can differ
                 String p1Name = readName(sc, "P1 display name (board/UI)", pretty(t));
                 String p2Name = readName(sc, "P2 display name (board/UI)", pretty(t));
 
-                // IMPORTANT: KindInput defenseFactor is int (not long)
                 p1.add(new KindInput(t, p1Name, core.defenseFactor, core.strategyCode));
                 p2.add(new KindInput(t, p2Name, core.defenseFactor, core.strategyCode));
             }
@@ -54,7 +51,7 @@ public final class Main {
             gc.runTerminal(sc);
 
         } else {
-            List<KindInput> kinds = new ArrayList<KindInput>();
+            List<KindInput> kinds = new ArrayList<>();
             for (MinionType t : chosen) {
                 System.out.println();
                 System.out.println("Configure type: " + t.name());
@@ -117,6 +114,7 @@ public final class Main {
         return name.isEmpty() ? defaultName : name;
     }
 
+    // ✅ แก้ตรงนี้: เลือกได้ 1-5 ชนิด
     private static List<MinionType> chooseTypes(Scanner sc) {
         while (true) {
             System.out.print("> ");
@@ -136,8 +134,17 @@ public final class Main {
                 if (!out.contains(t)) out.add(t);
             }
 
-            if (out.size() >= 3) return out;
-            System.out.println("Please choose at least 3 distinct types.");
+            if (out.size() < 1) {
+                System.out.println("Please choose at least 1 distinct type.");
+                continue;
+            }
+
+            if (out.size() > 5) {
+                System.out.println("Maximum 5 types allowed.");
+                continue;
+            }
+
+            return out;
         }
     }
 
