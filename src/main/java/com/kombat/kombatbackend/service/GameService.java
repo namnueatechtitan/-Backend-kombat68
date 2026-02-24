@@ -3,13 +3,19 @@ package com.kombat.kombatbackend.service;
 import com.kombat.kombatbackend.engine.gamestate.*;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 public class GameService {
 
     private GameConfig config;
     private GameMode mode;
-    private CharacterType selectedCharacter;   // ✅ เพิ่มใหม่
+    private CharacterType selectedCharacter;
     private int minionTypeCount;
+
+    // ✅ เพิ่มใหม่
+    private final List<MinionType> selectedMinions = new ArrayList<>();
 
     private GameState gameState;
     private MockGameState mockGameState;
@@ -42,7 +48,7 @@ public class GameService {
     }
 
     // =========================
-    // CHARACTER (เพิ่มใหม่)
+    // CHARACTER
     // =========================
 
     public void setCharacter(CharacterType character) {
@@ -63,6 +69,27 @@ public class GameService {
 
     public int getMinionTypeCount() {
         return minionTypeCount;
+    }
+
+    // =========================
+    // MINION SELECTION (เพิ่มใหม่)
+    // =========================
+
+    public void addMinion(MinionType type) {
+
+        if (selectedMinions.size() >= minionTypeCount) {
+            throw new IllegalStateException("Minion limit reached");
+        }
+
+        if (selectedMinions.contains(type)) {
+            throw new IllegalStateException("Minion type already selected");
+        }
+
+        selectedMinions.add(type);
+    }
+
+    public List<MinionType> getSelectedMinions() {
+        return selectedMinions;
     }
 
     // =========================
@@ -107,10 +134,6 @@ public class GameService {
         this.mockGameState = result.getMock();
     }
 
-    // =========================
-    // INTERNAL STATE BUILDERS
-    // =========================
-
     private SetupResult createDuelState() {
         return AutoModeSetup.createGame(config, null);
     }
@@ -118,10 +141,6 @@ public class GameService {
     private SetupResult createSolitaireState() {
         return AutoModeSetup.createGame(config, null);
     }
-
-    // =========================
-    // GET GAME STATE
-    // =========================
 
     public GameState getGameState() {
         return gameState;

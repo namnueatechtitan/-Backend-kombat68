@@ -52,7 +52,7 @@ public class GameApiController {
     }
 
     // =========================
-    // CHARACTER (ใช้ Enum ตรง ๆ)
+    // CHARACTER
     // =========================
 
     @PostMapping("/character")
@@ -86,6 +86,18 @@ public class GameApiController {
     }
 
     // =========================
+    // ADD MINION (เพิ่มใหม่)
+    // =========================
+
+    @PostMapping("/minion")
+    public ResponseEntity<?> addMinion(
+            @RequestBody MinionTypeRequest request) {
+
+        gameService.addMinion(request.getType());
+        return ResponseEntity.ok(gameService.getSelectedMinions());
+    }
+
+    // =========================
     // SETUP SUMMARY
     // =========================
 
@@ -97,6 +109,7 @@ public class GameApiController {
         data.put("config", gameService.getConfig());
         data.put("character", gameService.getSelectedCharacter());
         data.put("minionTypeCount", gameService.getMinionTypeCount());
+        data.put("selectedMinions", gameService.getSelectedMinions());
 
         return data;
     }
