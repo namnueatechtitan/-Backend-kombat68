@@ -14,7 +14,6 @@ public class GameService {
     private GameConfig config;
     private GameMode mode;
     private CharacterType selectedCharacter;
-    private int minionTypeCount;
 
     private final List<MinionKindDef> selectedMinions = new ArrayList<>();
 
@@ -61,26 +60,18 @@ public class GameService {
     }
 
     // =====================================================
-    // MINION TYPE COUNT
+    // RESET MINIONS
     // =====================================================
 
-    public void setMinionTypeCount(int count) {
-        this.minionTypeCount = count;
-    }
-
-    public int getMinionTypeCount() {
-        return minionTypeCount;
+    public void resetMinions() {
+        selectedMinions.clear();
     }
 
     // =====================================================
-    // CREATE MINION (Strategy Confirm)
+    // ADD MINION (called from /setup/full)
     // =====================================================
 
     public void addMinion(String typeText, int defenseFactor, String strategyCode) {
-
-        if (selectedMinions.size() >= minionTypeCount) {
-            throw new IllegalStateException("Minion limit reached");
-        }
 
         if (strategyCode == null || strategyCode.trim().isEmpty()) {
             throw new IllegalArgumentException("Strategy must not be empty");
@@ -96,7 +87,7 @@ public class GameService {
             throw new IllegalStateException("Minion type already selected");
         }
 
-        // 🔥 สร้าง dummy GameState สำหรับ parse strategy
+        // 🔥 dummy state สำหรับ parse strategy
         Board board = new Board();
         List<Minion> minions = new ArrayList<>();
 
@@ -116,7 +107,6 @@ public class GameService {
         Parser parser = new Parser(strategyCode, mock);
         Strategy strategy = parser.parseStrategy();
 
-        // 🔥 เก็บทั้ง raw string และ parsed strategy
         MinionKindDef def =
                 new MinionKindDef(
                         type,
@@ -150,32 +140,35 @@ public class GameService {
             throw new IllegalStateException("Character not selected");
         }
 
-        if (selectedMinions.size() != minionTypeCount) {
-            throw new IllegalStateException("Not all minion types configured yet");
+        if (selectedMinions.isEmpty()) {
+            throw new IllegalStateException("No minions configured");
         }
 
-        SetupResult result;
+        Board board = new Board();
+        BudgetManager budget =
+                new BudgetManager(config.initBudget());
 
-        switch (mode) {
-            case AUTO:
-            case DUEL:
-            case SOLITAIRE:
-                result = AutoModeSetup.createGame(config, null);
-                break;
+        List<Minion> minions = new ArrayList<>();
 
-            default:
-                throw new IllegalStateException("Unsupported mode");
-        }
+        GameState gs = new GameState(
+                board,
+                minions,
+                budget,
+                TurnPhase.PLAY,
+                config
+        );
 
-        this.gameState = result.getGameState();
-        this.mockGameState = result.getMock();
+        MockGameState mg = new MockGameState(gs);
 
-        // 🔥 register minion kinds เข้า GameState
+        // register kind definitions
         for (MinionKindDef def : selectedMinions) {
-            gameState.registerKind(def);
+            gs.registerKind(def);
         }
 
-        gameState.lockSetup();
+        gs.lockSetup();
+
+        this.gameState = gs;
+        this.mockGameState = mg;
     }
 
     public GameState getGameState() {

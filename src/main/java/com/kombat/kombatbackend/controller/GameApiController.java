@@ -71,37 +71,24 @@ public class GameApiController {
     }
 
     // =====================================================
-    // MINION TYPE COUNT
+    // SETUP FULL
     // =====================================================
 
-    @PostMapping("/minion-type-count")
-    public int setMinionTypeCount(
-            @RequestBody MinionTypeCountRequest request) {
+    @PostMapping("/setup/full")
+    public ResponseEntity<?> setupFull(
+            @RequestBody List<MinionStrategyRequest> minions) {
 
-        gameService.setMinionTypeCount(request.getCount());
-        return gameService.getMinionTypeCount();
-    }
+        gameService.resetMinions();
 
-    @GetMapping("/minion-type-count")
-    public int getMinionTypeCount() {
-        return gameService.getMinionTypeCount();
-    }
+        for (MinionStrategyRequest request : minions) {
+            gameService.addMinion(
+                    request.getType(),
+                    request.getDefenseFactor(),
+                    request.getStrategy()
+            );
+        }
 
-    // =====================================================
-    // CREATE MINION WITH STRATEGY (รวม select + create)
-    // =====================================================
-
-    @PostMapping("/minion/create")
-    public ResponseEntity<?> createMinion(
-            @RequestBody MinionStrategyRequest request) {
-
-        gameService.addMinion(
-                request.getType(),
-                request.getDefenseFactor(),
-                request.getStrategy()
-        );
-
-        return ResponseEntity.ok("Minion created successfully");
+        return ResponseEntity.ok("Setup completed");
     }
 
     // =====================================================
@@ -116,9 +103,7 @@ public class GameApiController {
         data.put("mode", gameService.getMode());
         data.put("config", gameService.getConfig());
         data.put("character", gameService.getSelectedCharacter());
-        data.put("minionTypeCount", gameService.getMinionTypeCount());
 
-        // ดึงเฉพาะ type ออกมา
         List<MinionType> types =
                 gameService.getSelectedMinions()
                         .stream()
