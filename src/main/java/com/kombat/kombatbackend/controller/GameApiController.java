@@ -8,7 +8,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/game")
@@ -21,9 +23,9 @@ public class GameApiController {
         this.gameService = gameService;
     }
 
-    // =========================
+    // =====================================================
     // CONFIG
-    // =========================
+    // =====================================================
 
     @GetMapping("/config")
     public GameConfig getConfig() {
@@ -36,9 +38,9 @@ public class GameApiController {
         return gameService.getConfig();
     }
 
-    // =========================
+    // =====================================================
     // MODE
-    // =========================
+    // =====================================================
 
     @PostMapping("/mode")
     public GameMode setMode(@RequestBody ModeRequest request) {
@@ -51,9 +53,9 @@ public class GameApiController {
         return gameService.getMode();
     }
 
-    // =========================
+    // =====================================================
     // CHARACTER
-    // =========================
+    // =====================================================
 
     @PostMapping("/character")
     public CharacterType setCharacter(
@@ -68,9 +70,9 @@ public class GameApiController {
         return gameService.getSelectedCharacter();
     }
 
-    // =========================
+    // =====================================================
     // MINION TYPE COUNT
-    // =========================
+    // =====================================================
 
     @PostMapping("/minion-type-count")
     public int setMinionTypeCount(
@@ -85,38 +87,53 @@ public class GameApiController {
         return gameService.getMinionTypeCount();
     }
 
-    // =========================
-    // ADD MINION (เพิ่มใหม่)
-    // =========================
+    // =====================================================
+    // CREATE MINION WITH STRATEGY (รวม select + create)
+    // =====================================================
 
-    @PostMapping("/minion")
-    public ResponseEntity<?> addMinion(
-            @RequestBody MinionTypeRequest request) {
+    @PostMapping("/minion/create")
+    public ResponseEntity<?> createMinion(
+            @RequestBody MinionStrategyRequest request) {
 
-        gameService.addMinion(request.getType());
-        return ResponseEntity.ok(gameService.getSelectedMinions());
+        gameService.addMinion(
+                request.getType(),
+                request.getDefenseFactor(),
+                request.getStrategy()
+        );
+
+        return ResponseEntity.ok("Minion created successfully");
     }
 
-    // =========================
+    // =====================================================
     // SETUP SUMMARY
-    // =========================
+    // =====================================================
 
     @GetMapping("/setup")
     public Map<String, Object> getSetupSummary() {
 
         Map<String, Object> data = new HashMap<>();
+
         data.put("mode", gameService.getMode());
         data.put("config", gameService.getConfig());
         data.put("character", gameService.getSelectedCharacter());
         data.put("minionTypeCount", gameService.getMinionTypeCount());
-        data.put("selectedMinions", gameService.getSelectedMinions());
+
+        // ดึงเฉพาะ type ออกมา
+        List<MinionType> types =
+                gameService.getSelectedMinions()
+                        .stream()
+                        .map(MinionKindDef::getType)
+                        .collect(Collectors.toList());
+
+        data.put("selectedMinionTypes", types);
+        data.put("definedMinions", gameService.getSelectedMinions());
 
         return data;
     }
 
-    // =========================
+    // =====================================================
     // START GAME
-    // =========================
+    // =====================================================
 
     @PostMapping("/start")
     public ResponseEntity<?> startGame() {
@@ -124,9 +141,9 @@ public class GameApiController {
         return ResponseEntity.ok("Game started");
     }
 
-    // =========================
+    // =====================================================
     // GAME STATE
-    // =========================
+    // =====================================================
 
     @GetMapping("/state")
     public ResponseEntity<?> getState() {

@@ -1,6 +1,8 @@
 package com.kombat.kombatbackend.service;
 
 import com.kombat.kombatbackend.engine.gamestate.*;
+import com.kombat.kombatbackend.engine.parser.Parser;
+import com.kombat.kombatbackend.engine.strategy.Strategy;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -14,15 +16,14 @@ public class GameService {
     private CharacterType selectedCharacter;
     private int minionTypeCount;
 
-    // ✅ เพิ่มใหม่
-    private final List<MinionType> selectedMinions = new ArrayList<>();
+    private final List<MinionKindDef> selectedMinions = new ArrayList<>();
 
     private GameState gameState;
     private MockGameState mockGameState;
 
-    // =========================
+    // =====================================================
     // CONFIG
-    // =========================
+    // =====================================================
 
     public GameConfig getConfig() {
         if (this.config == null) {
@@ -35,9 +36,9 @@ public class GameService {
         this.config = config;
     }
 
-    // =========================
+    // =====================================================
     // MODE
-    // =========================
+    // =====================================================
 
     public void setMode(GameMode mode) {
         this.mode = mode;
@@ -47,9 +48,9 @@ public class GameService {
         return mode;
     }
 
-    // =========================
+    // =====================================================
     // CHARACTER
-    // =========================
+    // =====================================================
 
     public void setCharacter(CharacterType character) {
         this.selectedCharacter = character;
@@ -59,9 +60,9 @@ public class GameService {
         return selectedCharacter;
     }
 
-    // =========================
+    // =====================================================
     // MINION TYPE COUNT
-    // =========================
+    // =====================================================
 
     public void setMinionTypeCount(int count) {
         this.minionTypeCount = count;
@@ -71,30 +72,69 @@ public class GameService {
         return minionTypeCount;
     }
 
-    // =========================
-    // MINION SELECTION (เพิ่มใหม่)
-    // =========================
+    // =====================================================
+    // CREATE MINION (Strategy Confirm)
+    // =====================================================
 
-    public void addMinion(MinionType type) {
+    public void addMinion(String typeText, int defenseFactor, String strategyCode) {
 
         if (selectedMinions.size() >= minionTypeCount) {
             throw new IllegalStateException("Minion limit reached");
         }
 
-        if (selectedMinions.contains(type)) {
+        if (strategyCode == null || strategyCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Strategy must not be empty");
+        }
+
+        if (config == null) {
+            throw new IllegalStateException("Config must be set before adding minions");
+        }
+
+        MinionType type = MinionType.fromUserText(typeText);
+
+        if (selectedMinions.stream().anyMatch(m -> m.getType() == type)) {
             throw new IllegalStateException("Minion type already selected");
         }
 
-        selectedMinions.add(type);
+        // 🔥 สร้าง dummy GameState สำหรับ parse strategy
+        Board board = new Board();
+        List<Minion> minions = new ArrayList<>();
+
+        BudgetManager budgetManager =
+                new BudgetManager(config.initBudget());
+
+        GameState dummyState = new GameState(
+                board,
+                minions,
+                budgetManager,
+                TurnPhase.SETUP,
+                config
+        );
+
+        MockGameState mock = new MockGameState(dummyState);
+
+        Parser parser = new Parser(strategyCode, mock);
+        Strategy strategy = parser.parseStrategy();
+
+        // 🔥 เก็บทั้ง raw string และ parsed strategy
+        MinionKindDef def =
+                new MinionKindDef(
+                        type,
+                        defenseFactor,
+                        strategyCode,
+                        strategy
+                );
+
+        selectedMinions.add(def);
     }
 
-    public List<MinionType> getSelectedMinions() {
+    public List<MinionKindDef> getSelectedMinions() {
         return selectedMinions;
     }
 
-    // =========================
+    // =====================================================
     // START GAME
-    // =========================
+    // =====================================================
 
     public void startGame() {
 
@@ -110,20 +150,17 @@ public class GameService {
             throw new IllegalStateException("Character not selected");
         }
 
+        if (selectedMinions.size() != minionTypeCount) {
+            throw new IllegalStateException("Not all minion types configured yet");
+        }
+
         SetupResult result;
 
         switch (mode) {
-
             case AUTO:
-                result = AutoModeSetup.createGame(config, null);
-                break;
-
             case DUEL:
-                result = createDuelState();
-                break;
-
             case SOLITAIRE:
-                result = createSolitaireState();
+                result = AutoModeSetup.createGame(config, null);
                 break;
 
             default:
@@ -132,14 +169,13 @@ public class GameService {
 
         this.gameState = result.getGameState();
         this.mockGameState = result.getMock();
-    }
 
-    private SetupResult createDuelState() {
-        return AutoModeSetup.createGame(config, null);
-    }
+        // 🔥 register minion kinds เข้า GameState
+        for (MinionKindDef def : selectedMinions) {
+            gameState.registerKind(def);
+        }
 
-    private SetupResult createSolitaireState() {
-        return AutoModeSetup.createGame(config, null);
+        gameState.lockSetup();
     }
 
     public GameState getGameState() {

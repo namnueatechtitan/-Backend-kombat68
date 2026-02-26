@@ -37,7 +37,6 @@ public final class AutoModeSetup {
             throw new IllegalArgumentException("Must choose at least 1 minion type.");
         }
 
-        // validate kinds: 1..5 distinct types
         EnumSet<MinionType> chosen = EnumSet.noneOf(MinionType.class);
 
         for (KindInput in : kindInputs) {
@@ -59,10 +58,19 @@ public final class AutoModeSetup {
         GameState gs = new GameState(board, minions, budget, TurnPhase.PLAY, cfg);
         MockGameState mg = new MockGameState(gs);
 
-        // register kind definitions
+        // ✅ register kind definitions (แก้ตรงนี้)
         for (KindInput in : kindInputs) {
             Strategy st = new Parser(in.strategyCode, mg).parseStrategy();
-            gs.registerKind(new MinionKindDef(in.type, in.kindName, in.defenseFactor, st));
+
+            gs.registerKind(
+                    new MinionKindDef(
+                            in.type,
+                            in.kindName,
+                            in.defenseFactor,
+                            in.strategyCode,   // 🔥 rawStrategy
+                            st
+                    )
+            );
         }
 
         gs.lockSetup();
@@ -70,13 +78,12 @@ public final class AutoModeSetup {
     }
 
     /**
-     * Duel setup (2 players):
-     * - both players must select the same set of 3..5 types
-     * - per spec: both players must agree on (kindName, defenseFactor, strategyCode) per type
+     * Duel setup (2 players)
      */
     public static SetupResult createDuelGame(GameConfig cfg,
                                              List<KindInput> p1Kinds,
                                              List<KindInput> p2Kinds) throws SyntaxException {
+
         if (cfg == null) cfg = GameConfig.sampleDefaults();
         if (p1Kinds == null || p2Kinds == null || p1Kinds.isEmpty() || p2Kinds.isEmpty()) {
             throw new IllegalArgumentException("Both p1Kinds and p2Kinds must not be empty");
@@ -85,38 +92,39 @@ public final class AutoModeSetup {
         EnumSet<MinionType> p1 = EnumSet.noneOf(MinionType.class);
         for (KindInput in : p1Kinds) {
             Objects.requireNonNull(in, "kind input must not be null");
-            if (!p1.add(in.type)) throw new IllegalArgumentException("Duplicate minion type in P1 setup: " + in.type);
+            if (!p1.add(in.type))
+                throw new IllegalArgumentException("Duplicate minion type in P1 setup: " + in.type);
         }
 
         EnumSet<MinionType> p2 = EnumSet.noneOf(MinionType.class);
         for (KindInput in : p2Kinds) {
             Objects.requireNonNull(in, "kind input must not be null");
-            if (!p2.add(in.type)) throw new IllegalArgumentException("Duplicate minion type in P2 setup: " + in.type);
+            if (!p2.add(in.type))
+                throw new IllegalArgumentException("Duplicate minion type in P2 setup: " + in.type);
         }
 
         if (!p1.equals(p2)) {
-            throw new IllegalArgumentException("Both players must choose the same set of types. P1=" + p1 + " P2=" + p2);
+            throw new IllegalArgumentException("Both players must choose the same set of types.");
         }
-        if (p1.size() < 3) throw new IllegalArgumentException("Must choose at least 3 minion types (kinds).");
-        if (p1.size() > 5) throw new IllegalArgumentException("Too many minion types (max 5).");
+        if (p1.size() < 3)
+            throw new IllegalArgumentException("Must choose at least 3 minion types.");
+        if (p1.size() > 5)
+            throw new IllegalArgumentException("Too many minion types (max 5).");
 
-        // ตามสเปค: ต้องเหมือนกันเฉพาะ defenseFactor/strategyCode ต่อ type
         for (MinionType t : p1) {
             KindInput a = findKind(p1Kinds, t);
             KindInput b = findKind(p2Kinds, t);
-            if (a == null || b == null) throw new IllegalStateException("Missing KindInput for type: " + t);
 
             if (a.defenseFactor != b.defenseFactor ||
                     !normCode(a.strategyCode).equals(normCode(b.strategyCode))) {
                 throw new IllegalArgumentException(
                         "Kind definition mismatch for " + t
-                                + " (defenseFactor/strategyCode must be identical for both players)."
                 );
             }
         }
 
         Board board = new Board();
-        BudgetManager budget = new BudgetManager(cfg.initBudget()); // pid=0 (phase-2 compat)
+        BudgetManager budget = new BudgetManager(cfg.initBudget());
         budget.initPlayer(1L, cfg.initBudget());
         budget.initPlayer(2L, cfg.initBudget());
 
@@ -124,18 +132,37 @@ public final class AutoModeSetup {
         GameState gs = new GameState(board, minions, budget, TurnPhase.PLAY, cfg);
         MockGameState mg = new MockGameState(gs);
 
-        // ป้องกันชื่อซ้ำในฝั่งเดียวกัน (เพราะ spawn รับ TYPE_OR_KIND)
         validateUniqueKindNames("P1", p1Kinds);
         validateUniqueKindNames("P2", p2Kinds);
 
-        // register แยก per player (kindName ต่างกันได้ แต่ใช้ strategy เดียวกัน)
+        // ✅ register per player (แก้ตรงนี้)
         for (MinionType t : p1) {
             KindInput a = findKind(p1Kinds, t);
             KindInput b = findKind(p2Kinds, t);
 
             Strategy st = new Parser(a.strategyCode, mg).parseStrategy();
-            gs.registerKind(1L, new MinionKindDef(a.type, a.kindName, a.defenseFactor, st));
-            gs.registerKind(2L, new MinionKindDef(b.type, b.kindName, b.defenseFactor, st));
+
+            gs.registerKind(
+                    1L,
+                    new MinionKindDef(
+                            a.type,
+                            a.kindName,
+                            a.defenseFactor,
+                            a.strategyCode,   // 🔥 rawStrategy
+                            st
+                    )
+            );
+
+            gs.registerKind(
+                    2L,
+                    new MinionKindDef(
+                            b.type,
+                            b.kindName,
+                            b.defenseFactor,
+                            b.strategyCode,   // 🔥 rawStrategy
+                            st
+                    )
+            );
         }
 
         gs.lockSetup();

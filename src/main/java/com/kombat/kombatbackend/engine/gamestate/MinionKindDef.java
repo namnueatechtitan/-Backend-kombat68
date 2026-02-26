@@ -9,23 +9,41 @@ import java.util.Objects;
  * Humans choose:
  *  - kindName (display name)
  *  - defenseFactor
- *  - strategy
+ *  - rawStrategy (original text)
+ *  - strategy (parsed AST)
  */
 public final class MinionKindDef {
 
     private final MinionType type;
     private final String kindName;
     private final int defenseFactor;
+
+    // 🔥 เพิ่มอันนี้ไว้เก็บ code ที่ user พิมพ์
+    private final String rawStrategy;
+
+    // parsed strategy (AST)
     private final Strategy strategy;
 
     /**
-     * Backward-compatible: display name defaults to enum name.
+     * Backward-compatible constructor:
+     * display name defaults to enum name.
      */
-    public MinionKindDef(MinionType type, int defenseFactor, Strategy strategy) {
-        this(type, type.name(), defenseFactor, strategy);
+    public MinionKindDef(
+            MinionType type,
+            int defenseFactor,
+            String rawStrategy,
+            Strategy strategy
+    ) {
+        this(type, type.name(), defenseFactor, rawStrategy, strategy);
     }
 
-    public MinionKindDef(MinionType type, String kindName, int defenseFactor, Strategy strategy) {
+    public MinionKindDef(
+            MinionType type,
+            String kindName,
+            int defenseFactor,
+            String rawStrategy,
+            Strategy strategy
+    ) {
         this.type = Objects.requireNonNull(type, "type must not be null");
 
         if (kindName == null || kindName.trim().isEmpty()) {
@@ -39,11 +57,33 @@ public final class MinionKindDef {
         }
         this.defenseFactor = defenseFactor;
 
+        if (rawStrategy == null || rawStrategy.trim().isEmpty()) {
+            throw new IllegalArgumentException("rawStrategy must not be empty");
+        }
+        this.rawStrategy = rawStrategy;
+
         this.strategy = Objects.requireNonNull(strategy, "strategy must not be null");
     }
 
-    public MinionType getType() { return type; }
-    public String getKindName() { return kindName; }
-    public int getDefenseFactor() { return defenseFactor; }
-    public Strategy getStrategy() { return strategy; }
+    public MinionType getType() {
+        return type;
+    }
+
+    public String getKindName() {
+        return kindName;
+    }
+
+    public int getDefenseFactor() {
+        return defenseFactor;
+    }
+
+    // 👇 เอาไว้แสดงใน UI
+    public String getRawStrategy() {
+        return rawStrategy;
+    }
+
+    // 👇 ใช้ตอน game execute
+    public Strategy getStrategy() {
+        return strategy;
+    }
 }
