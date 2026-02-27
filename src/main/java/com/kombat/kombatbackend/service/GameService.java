@@ -5,20 +5,28 @@ import com.kombat.kombatbackend.engine.parser.Parser;
 import com.kombat.kombatbackend.engine.strategy.Strategy;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Service
 public class GameService {
 
+    public static final long P1 = 1L;
+    public static final long P2 = 2L;
+
     private GameConfig config;
     private GameMode mode;
-    private CharacterType selectedCharacter;
 
-    private final List<MinionKindDef> selectedMinions = new ArrayList<>();
+    // 🔥 แยก character ต่อ player
+    private final Map<Long, CharacterType> selectedCharacters = new HashMap<>();
+
+    // 🔥 แยก minions ต่อ player
+    private final Map<Long, List<MinionKindDef>> selectedMinionsByPlayer = new HashMap<>();
 
     private GameState gameState;
     private MockGameState mockGameState;
+
+    // 🔥 current turn player
+    private long currentPlayer = P1;
 
     // =====================================================
     // CONFIG
@@ -48,30 +56,33 @@ public class GameService {
     }
 
     // =====================================================
-    // CHARACTER
+    // CHARACTER (per player)
     // =====================================================
 
-    public void setCharacter(CharacterType character) {
-        this.selectedCharacter = character;
+    public void setCharacter(long playerId, CharacterType character) {
+        selectedCharacters.put(playerId, character);
     }
 
-    public CharacterType getSelectedCharacter() {
-        return selectedCharacter;
-    }
-
-    // =====================================================
-    // RESET MINIONS
-    // =====================================================
-
-    public void resetMinions() {
-        selectedMinions.clear();
+    public CharacterType getCharacter(long playerId) {
+        return selectedCharacters.get(playerId);
     }
 
     // =====================================================
-    // ADD MINION (called from /setup/full)
+    // RESET MINIONS (per player)
     // =====================================================
 
-    public void addMinion(String typeText, int defenseFactor, String strategyCode) {
+    public void resetMinions(long playerId) {
+        selectedMinionsByPlayer.put(playerId, new ArrayList<>());
+    }
+
+    // =====================================================
+    // ADD MINION (per player)
+    // =====================================================
+
+    public void addMinion(long playerId,
+                          String typeText,
+                          int defenseFactor,
+                          String strategyCode) {
 
         if (strategyCode == null || strategyCode.trim().isEmpty()) {
             throw new IllegalArgumentException("Strategy must not be empty");
@@ -83,16 +94,17 @@ public class GameService {
 
         MinionType type = MinionType.fromUserText(typeText);
 
-        if (selectedMinions.stream().anyMatch(m -> m.getType() == type)) {
-            throw new IllegalStateException("Minion type already selected");
+        List<MinionKindDef> list =
+                selectedMinionsByPlayer.computeIfAbsent(playerId, k -> new ArrayList<>());
+
+        if (list.stream().anyMatch(m -> m.getType() == type)) {
+            throw new IllegalStateException("Minion type already selected for player " + playerId);
         }
 
-        // 🔥 dummy state สำหรับ parse strategy
+        // dummy state สำหรับ parse strategy
         Board board = new Board();
         List<Minion> minions = new ArrayList<>();
-
-        BudgetManager budgetManager =
-                new BudgetManager(config.initBudget());
+        BudgetManager budgetManager = new BudgetManager(config.initBudget());
 
         GameState dummyState = new GameState(
                 board,
@@ -103,7 +115,6 @@ public class GameService {
         );
 
         MockGameState mock = new MockGameState(dummyState);
-
         Parser parser = new Parser(strategyCode, mock);
         Strategy strategy = parser.parseStrategy();
 
@@ -115,11 +126,11 @@ public class GameService {
                         strategy
                 );
 
-        selectedMinions.add(def);
+        list.add(def);
     }
 
-    public List<MinionKindDef> getSelectedMinions() {
-        return selectedMinions;
+    public List<MinionKindDef> getSelectedMinions(long playerId) {
+        return selectedMinionsByPlayer.getOrDefault(playerId, List.of());
     }
 
     // =====================================================
@@ -136,18 +147,18 @@ public class GameService {
             throw new IllegalStateException("Config not selected");
         }
 
-        if (selectedCharacter == null) {
-            throw new IllegalStateException("Character not selected");
+        if (!selectedCharacters.containsKey(P1) ||
+                !selectedCharacters.containsKey(P2)) {
+            throw new IllegalStateException("Both players must select characters");
         }
 
-        if (selectedMinions.isEmpty()) {
-            throw new IllegalStateException("No minions configured");
+        if (getSelectedMinions(P1).isEmpty() ||
+                getSelectedMinions(P2).isEmpty()) {
+            throw new IllegalStateException("Both players must configure minions");
         }
 
         Board board = new Board();
-        BudgetManager budget =
-                new BudgetManager(config.initBudget());
-
+        BudgetManager budget = new BudgetManager(config.initBudget());
         List<Minion> minions = new ArrayList<>();
 
         GameState gs = new GameState(
@@ -160,16 +171,39 @@ public class GameService {
 
         MockGameState mg = new MockGameState(gs);
 
-        // register kind definitions
-        for (MinionKindDef def : selectedMinions) {
-            gs.registerKind(def);
+        // 🔥 register kinds for P1
+        for (MinionKindDef def : getSelectedMinions(P1)) {
+            gs.registerKind(P1, def);
+        }
+
+        // 🔥 register kinds for P2
+        for (MinionKindDef def : getSelectedMinions(P2)) {
+            gs.registerKind(P2, def);
         }
 
         gs.lockSetup();
 
         this.gameState = gs;
         this.mockGameState = mg;
+        this.currentPlayer = P1;
     }
+
+    // =====================================================
+    // TURN CONTROL
+    // =====================================================
+
+    public long getCurrentPlayer() {
+        return currentPlayer;
+    }
+
+    public void endTurn() {
+        currentPlayer = (currentPlayer == P1) ? P2 : P1;
+        gameState.advanceTurn();
+    }
+
+    // =====================================================
+    // GETTERS
+    // =====================================================
 
     public GameState getGameState() {
         return gameState;

@@ -2,9 +2,19 @@ package com.kombat.kombatbackend.dto;
 
 public class MinionStrategyRequest {
 
+    private long playerId;   // 🔥 เพิ่ม
+
     private String type;
     private String strategy;
     private int defenseFactor;
+
+    public long getPlayerId() {
+        return playerId;
+    }
+
+    public void setPlayerId(long playerId) {
+        this.playerId = playerId;
+    }
 
     public String getType() {
         return type;

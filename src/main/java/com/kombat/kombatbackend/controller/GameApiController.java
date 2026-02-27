@@ -54,45 +54,51 @@ public class GameApiController {
     }
 
     // =====================================================
-    // CHARACTER
+    // CHARACTER (per player)
     // =====================================================
 
     @PostMapping("/character")
     public CharacterType setCharacter(
             @RequestBody SelectCharacterRequest request) {
 
-        gameService.setCharacter(request.getCharacter());
-        return gameService.getSelectedCharacter();
+        gameService.setCharacter(
+                request.getPlayerId(),
+                request.getCharacter()
+        );
+
+        return gameService.getCharacter(request.getPlayerId());
     }
 
-    @GetMapping("/character")
-    public CharacterType getCharacter() {
-        return gameService.getSelectedCharacter();
+    @GetMapping("/character/{playerId}")
+    public CharacterType getCharacter(@PathVariable long playerId) {
+        return gameService.getCharacter(playerId);
     }
 
     // =====================================================
-    // SETUP FULL
+    // SETUP FULL (per player)
     // =====================================================
 
-    @PostMapping("/setup/full")
+    @PostMapping("/setup/full/{playerId}")
     public ResponseEntity<?> setupFull(
+            @PathVariable long playerId,
             @RequestBody List<MinionStrategyRequest> minions) {
 
-        gameService.resetMinions();
+        gameService.resetMinions(playerId);
 
         for (MinionStrategyRequest request : minions) {
             gameService.addMinion(
+                    playerId,
                     request.getType(),
                     request.getDefenseFactor(),
                     request.getStrategy()
             );
         }
 
-        return ResponseEntity.ok("Setup completed");
+        return ResponseEntity.ok("Setup completed for player " + playerId);
     }
 
     // =====================================================
-    // SETUP SUMMARY
+    // SETUP SUMMARY (both players)
     // =====================================================
 
     @GetMapping("/setup")
@@ -102,16 +108,30 @@ public class GameApiController {
 
         data.put("mode", gameService.getMode());
         data.put("config", gameService.getConfig());
-        data.put("character", gameService.getSelectedCharacter());
 
-        List<MinionType> types =
-                gameService.getSelectedMinions()
-                        .stream()
-                        .map(MinionKindDef::getType)
-                        .collect(Collectors.toList());
+        Map<String, Object> players = new HashMap<>();
 
-        data.put("selectedMinionTypes", types);
-        data.put("definedMinions", gameService.getSelectedMinions());
+        for (long pid : List.of(GameService.P1, GameService.P2)) {
+
+            Map<String, Object> pData = new HashMap<>();
+
+            pData.put("character", gameService.getCharacter(pid));
+
+            List<MinionKindDef> defs =
+                    gameService.getSelectedMinions(pid);
+
+            List<MinionType> types =
+                    defs.stream()
+                            .map(MinionKindDef::getType)
+                            .collect(Collectors.toList());
+
+            pData.put("selectedMinionTypes", types);
+            pData.put("definedMinions", defs);
+
+            players.put("player" + pid, pData);
+        }
+
+        data.put("players", players);
 
         return data;
     }
@@ -124,6 +144,21 @@ public class GameApiController {
     public ResponseEntity<?> startGame() {
         gameService.startGame();
         return ResponseEntity.ok("Game started");
+    }
+
+    // =====================================================
+    // TURN CONTROL
+    // =====================================================
+
+    @GetMapping("/current-player")
+    public long getCurrentPlayer() {
+        return gameService.getCurrentPlayer();
+    }
+
+    @PostMapping("/end-turn")
+    public ResponseEntity<?> endTurn() {
+        gameService.endTurn();
+        return ResponseEntity.ok("Turn ended");
     }
 
     // =====================================================
