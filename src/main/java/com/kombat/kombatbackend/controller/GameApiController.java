@@ -24,18 +24,35 @@ public class GameApiController {
     }
 
     // =====================================================
-    // CONFIG
+    // CONFIG (ใช้ DTO ไม่ expose GameConfig ตรง ๆ)
     // =====================================================
 
     @GetMapping("/config")
-    public GameConfig getConfig() {
-        return gameService.getConfig();
+    public ResponseEntity<?> getConfig() {
+        return ResponseEntity.ok(gameService.getConfig());
     }
 
     @PostMapping("/config")
-    public GameConfig setConfig(@RequestBody GameConfig config) {
+    public ResponseEntity<?> setConfig(@RequestBody ConfigRequest request) {
+
+        GameConfig config = new GameConfig(
+                request.getSpawnCost(),
+                request.getHexPurchaseCost(),
+                request.getInitBudget(),
+                request.getInitHp(),
+                request.getTurnBudget(),
+                request.getMaxBudget(),
+                request.getInterestPct(),
+                request.getMaxTurns(),
+                request.getMaxSpawns()
+        );
+
         gameService.setConfig(config);
-        return gameService.getConfig();
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Config set",
+                "phase", gameService.getPhase()
+        ));
     }
 
     // =====================================================
@@ -43,22 +60,25 @@ public class GameApiController {
     // =====================================================
 
     @PostMapping("/mode")
-    public GameMode setMode(@RequestBody ModeRequest request) {
+    public ResponseEntity<?> setMode(@RequestBody ModeRequest request) {
         gameService.setMode(request.getMode());
-        return gameService.getMode();
+        return ResponseEntity.ok(Map.of(
+                "mode", gameService.getMode(),
+                "phase", gameService.getPhase()
+        ));
     }
 
     @GetMapping("/mode")
-    public GameMode getMode() {
-        return gameService.getMode();
+    public ResponseEntity<?> getMode() {
+        return ResponseEntity.ok(gameService.getMode());
     }
 
     // =====================================================
-    // CHARACTER (per player)
+    // CHARACTER
     // =====================================================
 
     @PostMapping("/character")
-    public CharacterType setCharacter(
+    public ResponseEntity<?> setCharacter(
             @RequestBody SelectCharacterRequest request) {
 
         gameService.setCharacter(
@@ -66,16 +86,20 @@ public class GameApiController {
                 request.getCharacter()
         );
 
-        return gameService.getCharacter(request.getPlayerId());
+        return ResponseEntity.ok(Map.of(
+                "player", request.getPlayerId(),
+                "character", gameService.getCharacter(request.getPlayerId()),
+                "phase", gameService.getPhase()
+        ));
     }
 
     @GetMapping("/character/{playerId}")
-    public CharacterType getCharacter(@PathVariable long playerId) {
-        return gameService.getCharacter(playerId);
+    public ResponseEntity<?> getCharacter(@PathVariable long playerId) {
+        return ResponseEntity.ok(gameService.getCharacter(playerId));
     }
 
     // =====================================================
-    // SETUP FULL (per player)
+    // SETUP FULL
     // =====================================================
 
     @PostMapping("/setup/full/{playerId}")
@@ -94,46 +118,11 @@ public class GameApiController {
             );
         }
 
-        return ResponseEntity.ok("Setup completed for player " + playerId);
-    }
-
-    // =====================================================
-    // SETUP SUMMARY (both players)
-    // =====================================================
-
-    @GetMapping("/setup")
-    public Map<String, Object> getSetupSummary() {
-
-        Map<String, Object> data = new HashMap<>();
-
-        data.put("mode", gameService.getMode());
-        data.put("config", gameService.getConfig());
-
-        Map<String, Object> players = new HashMap<>();
-
-        for (long pid : List.of(GameService.P1, GameService.P2)) {
-
-            Map<String, Object> pData = new HashMap<>();
-
-            pData.put("character", gameService.getCharacter(pid));
-
-            List<MinionKindDef> defs =
-                    gameService.getSelectedMinions(pid);
-
-            List<MinionType> types =
-                    defs.stream()
-                            .map(MinionKindDef::getType)
-                            .collect(Collectors.toList());
-
-            pData.put("selectedMinionTypes", types);
-            pData.put("definedMinions", defs);
-
-            players.put("player" + pid, pData);
-        }
-
-        data.put("players", players);
-
-        return data;
+        return ResponseEntity.ok(Map.of(
+                "message", "Setup completed",
+                "player", playerId,
+                "phase", gameService.getPhase()
+        ));
     }
 
     // =====================================================
@@ -143,7 +132,10 @@ public class GameApiController {
     @PostMapping("/start")
     public ResponseEntity<?> startGame() {
         gameService.startGame();
-        return ResponseEntity.ok("Game started");
+        return ResponseEntity.ok(Map.of(
+                "message", "Game started",
+                "phase", gameService.getPhase()
+        ));
     }
 
     // =====================================================
@@ -151,14 +143,17 @@ public class GameApiController {
     // =====================================================
 
     @GetMapping("/current-player")
-    public long getCurrentPlayer() {
-        return gameService.getCurrentPlayer();
+    public ResponseEntity<?> getCurrentPlayer() {
+        return ResponseEntity.ok(gameService.getCurrentPlayer());
     }
 
     @PostMapping("/end-turn")
     public ResponseEntity<?> endTurn() {
         gameService.endTurn();
-        return ResponseEntity.ok("Turn ended");
+        return ResponseEntity.ok(Map.of(
+                "message", "Turn ended",
+                "phase", gameService.getPhase()
+        ));
     }
 
     // =====================================================
@@ -178,4 +173,114 @@ public class GameApiController {
 
         return ResponseEntity.ok(state);
     }
+
+    // =====================================================
+    // GAMEPLAY ACTIONS
+    // =====================================================
+
+    @PostMapping("/spawn")
+    public ResponseEntity<?> spawn(@RequestBody SpawnRequest request) {
+
+        boolean success = gameService.spawn(
+                request.getType(),
+                request.getRow(),
+                request.getCol()
+        );
+
+        return ResponseEntity.ok(Map.of(
+                "success", success,
+                "phase", gameService.getPhase()
+        ));
+    }
+
+    @PostMapping("/buy-hex")
+    public ResponseEntity<?> buyHex(@RequestBody BuyHexRequest request) {
+
+        boolean success = gameService.buyHex(
+                request.getRow(),
+                request.getCol()
+        );
+
+        return ResponseEntity.ok(Map.of(
+                "success", success,
+                "phase", gameService.getPhase()
+        ));
+    }
+
+    // =====================================================
+    // STATUS
+    // =====================================================
+
+    @GetMapping("/status")
+    public ResponseEntity<?> getStatus() {
+
+        GameState state = gameService.getGameState();
+
+        if (state == null) {
+            return ResponseEntity
+                    .badRequest()
+                    .body("Game has not started yet");
+        }
+
+        GameStatusResponse response =
+                new GameStatusResponse(
+                        gameService.getCurrentPlayer(),
+                        gameService.isGameOver(),
+                        gameService.getWinner(),
+                        state
+                );
+
+        return ResponseEntity.ok(response);
+    }
+
+    // =====================================================
+    // DEBUG PHASE
+    // =====================================================
+
+    @GetMapping("/phase")
+    public ResponseEntity<?> getPhase() {
+        return ResponseEntity.ok(gameService.getPhase());
+    }
+    @PostMapping("/init-full")
+    public ResponseEntity<?> initFullGame(
+            @RequestBody GameInitRequest request) {
+
+        gameService.initFullGame(request);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Game initialized",
+                "phase", gameService.getPhase()
+        ));
+    }
+    @GetMapping("/setup")
+    public ResponseEntity<?> getSetupSummary() {
+
+        Map<String, Object> response = new HashMap<>();
+
+        response.put("mode", gameService.getMode());
+        response.put("config", gameService.getConfig());
+
+        Map<String, Object> players = new HashMap<>();
+
+        Map<String, Object> p1 = new HashMap<>();
+        p1.put("character", gameService.getCharacter(GameService.P1));
+        p1.put("definedMinions", gameService.getSelectedMinions(GameService.P1));
+
+        Map<String, Object> p2 = new HashMap<>();
+        p2.put("character", gameService.getCharacter(GameService.P2));
+        p2.put("definedMinions", gameService.getSelectedMinions(GameService.P2));
+
+        players.put("player1", p1);
+        players.put("player2", p2);
+
+        response.put("players", players);
+
+        return ResponseEntity.ok(response);
+    }
+    @PostMapping("/reset")
+    public ResponseEntity<?> reset() {
+        gameService.resetGame();
+        return ResponseEntity.ok("Reset");
+    }
+
 }
