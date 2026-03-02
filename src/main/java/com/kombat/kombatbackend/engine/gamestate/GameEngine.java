@@ -233,6 +233,7 @@ public class GameEngine {
     private void runStrategies(long pid) {
 
         actionLog.clear();
+        actionLog.add("TURN " + gameState.getTurnNumber() + " EXECUTE P" + pid);
 
         SpecialVars special = new SpecialVars() {
             @Override

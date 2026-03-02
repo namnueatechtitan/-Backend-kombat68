@@ -30,7 +30,7 @@ public class MoveStmt implements Stmt {
         long before = game.getBudget(pid);
         boolean moved = game.moveCurrentMinion(dir);
 
-        ctx.log("MOVE " + dir + " " + (moved ? "OK" : "NO-OP")
+        ctx.log("P" + pid + " MOVE " + dir + " " + (moved ? "OK" : "NO-OP")
                 + " Budget:" + before + "->" + game.getBudget(pid));
     }
 

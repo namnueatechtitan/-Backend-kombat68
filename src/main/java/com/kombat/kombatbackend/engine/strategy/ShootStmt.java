@@ -30,12 +30,12 @@ public class ShootStmt implements Stmt {
 
         // spec: ถ้างบไม่พอ -> หยุด evaluation ของ strategy ทันที
         if (before < cost) {
-            ctx.log("SHOOT " + dir + " x=" + x + " STOP(no-budget) Budget:" + before);
+            ctx.log("P" + pid + " SHOOT " + dir + " x=" + x + " STOP(no-budget) Budget:" + before);
             throw new StopEvaluation("no budget for shoot");
         }
         MockGameState.AttackResult r = game.shoot(dir, x);
 
-        ctx.log("SHOOT " + dir + " x=" + x + " " + r
+        ctx.log("P" + pid + " SHOOT " + dir + " x=" + x + " " + r
                 + " Budget:" + before + "->" + game.getBudget(pid));
     }
 

@@ -119,6 +119,39 @@ class GameServiceFreeSpawnFlowTest {
         assertTrue(service.getActionLogs().stream().anyMatch(log -> log.contains("MOVE DOWN")));
     }
 
+    @Test
+    void moveNoOpStillConsumesOneBudgetAndLogsPlayerPrefix() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest("move up; done;", "done;"));
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        long budgetBefore = service.getGameState().getBudgetManager().getBudget(GameService.P1);
+        service.endTurn();
+        long budgetAfter = service.getGameState().getBudgetManager().getBudget(GameService.P1);
+
+        assertEquals(budgetBefore - 1, budgetAfter);
+        assertTrue(service.getActionLogs().stream().anyMatch(log -> log.contains("TURN 1 EXECUTE P1")));
+        assertTrue(service.getActionLogs().stream().anyMatch(log -> log.contains("P1 MOVE UP NO-OP")));
+    }
+
+    @Test
+    void shootNoTargetConsumesTwoBudgetAndLogsPlayerPrefix() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest("shoot up 1; done;", "done;"));
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        long budgetBefore = service.getGameState().getBudgetManager().getBudget(GameService.P1);
+        service.endTurn();
+        long budgetAfter = service.getGameState().getBudgetManager().getBudget(GameService.P1);
+
+        assertEquals(budgetBefore - 2, budgetAfter);
+        assertTrue(service.getActionLogs().stream().anyMatch(log -> log.contains("P1 SHOOT UP x=1 NO_TARGET")));
+    }
+
     private static GameInitRequest buildRequest() {
         return buildRequest("done;", "done;");
     }
