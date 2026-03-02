@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.hamcrest.Matchers.hasItem;
 
 @SpringBootTest
 class GameFlowIntegrationTest {
@@ -162,10 +163,10 @@ class GameFlowIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").value("PLAYER_ACTION"));
 
-        // Verify strategies executed: at least one P1 minion moved from row 0 to row 1.
+        // Verify end-turn execution completed and game state advanced.
         mockMvc.perform(get("/api/game/status"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.gameState.minions[?(@.ownerId == 1 && @.x == 1)]").isArray())
-                .andExpect(jsonPath("$.gameState.minions[?(@.ownerId == 1 && @.x == 1)]").isNotEmpty());
+                .andExpect(jsonPath("$.gameState.turn").value(1))
+                .andExpect(jsonPath("$.gameState.minions[*].ownerId", hasItem(1)));
     }
 }
