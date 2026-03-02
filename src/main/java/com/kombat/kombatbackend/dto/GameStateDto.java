@@ -20,6 +20,7 @@ public class GameStateDto {
     }
 
     public int getTurnNumber() { return turnNumber; }
+    public int getTurn() { return turnNumber; }
     public String getPhase() { return phase; }
     public List<MinionDto> getMinions() { return minions; }
     public long getBudget() { return budget; }
