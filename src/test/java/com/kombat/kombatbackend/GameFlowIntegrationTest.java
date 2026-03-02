@@ -22,6 +22,7 @@ class GameFlowIntegrationTest {
 
     @BeforeEach
     void resetGame() throws Exception {
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         mockMvc.perform(post("/api/game/reset"))
                 .andExpect(status().isOk());
     }
