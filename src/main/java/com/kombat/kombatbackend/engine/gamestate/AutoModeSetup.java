@@ -55,7 +55,7 @@ public final class AutoModeSetup {
         BudgetManager budget = new BudgetManager(cfg.initBudget());
         List<Minion> minions = new ArrayList<>();
 
-        GameState gs = new GameState(board, minions, budget, TurnPhase.ACTION, cfg);
+        GameState gs = new GameState(board, minions, budget, TurnPhase.PLAYER_ACTION, cfg);
         MockGameState mg = new MockGameState(gs);
 
         // ✅ register kind definitions (แก้ตรงนี้)
@@ -129,7 +129,7 @@ public final class AutoModeSetup {
         budget.initPlayer(2L, cfg.initBudget());
 
         List<Minion> minions = new ArrayList<>();
-        GameState gs = new GameState(board, minions, budget, TurnPhase.ACTION, cfg);
+        GameState gs = new GameState(board, minions, budget, TurnPhase.PLAYER_ACTION, cfg);
         MockGameState mg = new MockGameState(gs);
 
         validateUniqueKindNames("P1", p1Kinds);
