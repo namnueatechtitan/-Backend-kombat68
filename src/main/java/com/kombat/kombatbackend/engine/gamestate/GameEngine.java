@@ -174,8 +174,8 @@ public class GameEngine {
 
                 freeSpawnDoneP2 = true;
 
-                switchPlayer();
-                startPlayerActionPhase();
+                switchPlayer();   //
+                gameState.setPhase(TurnPhase.PLAYER_ACTION);
 
                 return true;
             }
