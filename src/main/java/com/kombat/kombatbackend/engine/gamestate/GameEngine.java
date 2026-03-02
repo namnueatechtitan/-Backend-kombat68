@@ -51,14 +51,10 @@ public class GameEngine {
     // =====================================================
 
     public void executeTurn() {
-
-        // ถ้ายังกด End Turn ตอน BUY_HEX ให้บังคับเข้า ACTION ก่อน
-        if (gameState.getPhase() == TurnPhase.BUY_HEX) {
-            gameState.setPhase(TurnPhase.ACTION);
-        }
-
-        if (gameState.getPhase() != TurnPhase.ACTION)
+        if (gameState.getPhase() != TurnPhase.PLAYER_ACTION)
             return;
+
+        gameState.setPhase(TurnPhase.EXECUTION);
 
         beginTurn();
         runStrategies(currentPlayer);
@@ -69,7 +65,7 @@ public class GameEngine {
         gameState.advanceTurn();
 
         switchPlayer();
-        gameState.setPhase(TurnPhase.BUY_HEX);
+        gameState.setPhase(TurnPhase.PLAYER_ACTION);
     }
     private void switchPlayer() {
         currentPlayer = (currentPlayer == P1) ? P2 : P1;
@@ -101,7 +97,11 @@ public class GameEngine {
 
     public boolean buyHex(int x, int y) {
 
-        if (gameState.getPhase() != TurnPhase.BUY_HEX)
+        if (gameState.getPhase() != TurnPhase.PLAYER_ACTION)
+            return false;
+
+        // ถ้าสpawnไปแล้ว เทิร์นนี้ห้ามกลับมาซื้อ (บังคับลำดับ ซื้อ -> spawn)
+        if (spawnedThisTurn)
             return false;
 
         if (boughtThisTurn)
@@ -178,13 +178,13 @@ public class GameEngine {
                 freeSpawnDoneP2 = true;
 
                 switchPlayer();   //
-                gameState.setPhase(TurnPhase.BUY_HEX);
+                gameState.setPhase(TurnPhase.PLAYER_ACTION);
 
                 return true;
             }
         }
         // ===== NORMAL TURN =====
-        if (gameState.getPhase() != TurnPhase.BUY_HEX)
+        if (gameState.getPhase() != TurnPhase.PLAYER_ACTION)
             return false;
 
         if (spawnedThisTurn)
@@ -213,8 +213,6 @@ public class GameEngine {
 
         incrementSpawns(currentPlayer);
         spawnedThisTurn = true;
-
-        gameState.setPhase(TurnPhase.ACTION);
 
         return true;
     }
