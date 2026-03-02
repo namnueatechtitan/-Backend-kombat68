@@ -1,12 +1,12 @@
 package com.kombat.kombatbackend.service;
+import com.kombat.kombatbackend.dto.SpawnableHexDto;
+import java.util.List;
 import com.kombat.kombatbackend.dto.GameInitRequest;
-import com.kombat.kombatbackend.dto.PlayerSetupRequest;
 import com.kombat.kombatbackend.dto.MinionSetup;
 import com.kombat.kombatbackend.engine.gamestate.*;
 import com.kombat.kombatbackend.engine.parser.Parser;
 import com.kombat.kombatbackend.engine.strategy.Strategy;
 import org.springframework.stereotype.Service;
-
 import java.util.*;
 
 @Service
@@ -137,7 +137,6 @@ public class GameService {
 
         list.add(def);
 
-        // If both players configured → READY_TO_START
         if (!getSelectedMinions(P1).isEmpty() &&
                 !getSelectedMinions(P2).isEmpty()) {
 
@@ -175,11 +174,12 @@ public class GameService {
         BudgetManager budget = new BudgetManager(config.initBudget());
         List<Minion> minions = new ArrayList<>();
 
+        // 🔥 เปลี่ยนแค่ตรงนี้
         GameState gs = new GameState(
                 board,
                 minions,
                 budget,
-                TurnPhase.PLAY,
+                TurnPhase.FREE_SPAWN, // เดิมคือ PLAY
                 config
         );
 
@@ -236,7 +236,6 @@ public class GameService {
 
         return engine.getCurrentPlayer();
     }
-
     public boolean isGameOver() {
         return engine != null && engine.isGameOver();
     }
@@ -246,8 +245,6 @@ public class GameService {
         return engine.getWinner();
     }
 
-    // ================= GETTERS =================
-
     public GameState getGameState() {
         return gameState;
     }
@@ -255,8 +252,6 @@ public class GameService {
     public GamePhase getPhase() {
         return phase;
     }
-
-    // ================= PHASE CHECK HELPER =================
 
     private void requirePhase(GamePhase... allowed) {
 
@@ -268,10 +263,9 @@ public class GameService {
                 "Invalid game phase: " + this.phase
         );
     }
-    // ================= initFullGame =================
+
     public void initFullGame(GameInitRequest req) {
 
-        // Reset state completely
         this.phase = GamePhase.NOT_CONFIGURED;
         this.selectedCharacters.clear();
         this.selectedMinionsByPlayer.clear();
@@ -279,29 +273,25 @@ public class GameService {
         this.gameState = null;
         this.mockGameState = null;
 
-        // Apply configuration
         setConfig(req.getConfig());
         setMode(req.getMode());
 
-        // Characters
         setCharacter(P1, req.getPlayer1().getCharacter());
         setCharacter(P2, req.getPlayer2().getCharacter());
 
-        // Player 1 setup
         resetMinions(P1);
         for (MinionSetup m : req.getPlayer1().getMinions()) {
             addMinion(P1, m.getType(), m.getDefenseFactor(), m.getStrategy());
         }
 
-        // Player 2 setup
         resetMinions(P2);
         for (MinionSetup m : req.getPlayer2().getMinions()) {
             addMinion(P2, m.getType(), m.getDefenseFactor(), m.getStrategy());
         }
 
-        // Start game
         startGame();
     }
+
     public void resetGame() {
         this.phase = GamePhase.NOT_CONFIGURED;
         this.config = null;
@@ -312,5 +302,16 @@ public class GameService {
         this.gameState = null;
         this.mockGameState = null;
     }
+    public List<SpawnableHexDto> getSpawnableHexes() {
 
+        if (engine == null) {
+            return List.of();
+        }
+
+        return engine.getSpawnableHexes();
+    }
+    public TurnPhase getTurnPhase() {
+        if (gameState == null) return null;
+        return gameState.getPhase();
+    }
 }

@@ -1,6 +1,9 @@
-### ===============================
-### 1️⃣ SET CONFIG
-### ===============================
+### RESET
+POST http://localhost:8080/api/game/reset
+
+###
+
+### CONFIG
 POST http://localhost:8080/api/game/config
 Content-Type: application/json
 
@@ -18,9 +21,7 @@ Content-Type: application/json
 
 ###
 
-### ===============================
-### 2️⃣ SET MODE
-### ===============================
+### MODE
 POST http://localhost:8080/api/game/mode
 Content-Type: application/json
 
@@ -30,9 +31,7 @@ Content-Type: application/json
 
 ###
 
-### ===============================
-### 3️⃣ SELECT CHARACTER P1
-### ===============================
+### CHARACTER P1
 POST http://localhost:8080/api/game/character
 Content-Type: application/json
 
@@ -43,9 +42,7 @@ Content-Type: application/json
 
 ###
 
-### ===============================
-### 4️⃣ SELECT CHARACTER P2
-### ===============================
+### CHARACTER P2
 POST http://localhost:8080/api/game/character
 Content-Type: application/json
 
@@ -56,9 +53,7 @@ Content-Type: application/json
 
 ###
 
-### ===============================
-### 5️⃣ SETUP PLAYER 1
-### ===============================
+### SETUP P1
 POST http://localhost:8080/api/game/setup/full/1
 Content-Type: application/json
 
@@ -72,9 +67,7 @@ Content-Type: application/json
 
 ###
 
-### ===============================
-### 6️⃣ SETUP PLAYER 2
-### ===============================
+### SETUP P2
 POST http://localhost:8080/api/game/setup/full/2
 Content-Type: application/json
 
@@ -88,30 +81,17 @@ Content-Type: application/json
 
 ###
 
-### ===============================
-### 7️⃣ CHECK PHASE (SHOULD BE READY_TO_START)
-### ===============================
-GET http://localhost:8080/api/game/phase
-
-###
-
-### ===============================
-### 8️⃣ START GAME
-### ===============================
+### START GAME
 POST http://localhost:8080/api/game/start
 
 ###
 
-### ===============================
-### 9️⃣ CHECK PHASE (SHOULD BE PLAYING)
-### ===============================
+### CHECK PHASE (ต้องเป็น FREE_SPAWN)
 GET http://localhost:8080/api/game/phase
 
 ###
 
-### ===============================
-### 🔟 SPAWN MINION
-### ===============================
+### P1 FREE SPAWN
 POST http://localhost:8080/api/game/spawn
 Content-Type: application/json
 
@@ -123,96 +103,12 @@ Content-Type: application/json
 
 ###
 
-### ===============================
-### 1️⃣1️⃣ END TURN
-### ===============================
-POST http://localhost:8080/api/game/end-turn
-
-###
-
-### ===============================
-### 1️⃣2️⃣ GET CURRENT PLAYER
-### ===============================
+### CHECK CURRENT PLAYER (ต้องเป็น 2)
 GET http://localhost:8080/api/game/current-player
 
 ###
 
-### ===============================
-### 1️⃣3️⃣ GET GAME STATE
-### ===============================
-GET http://localhost:8080/api/game/state
-
-###
-
-### ===============================
-### 1️⃣4️⃣ GET STATUS
-### ===============================
-GET http://localhost:8080/api/game/status
-
-### ===============================
-### TEST 14 – Spawn เกิน MaxSpawns
-### ===============================
-
-POST http://localhost:8080/api/game/spawn
-Content-Type: application/json
-
-{
-  "type": "FIGHTER",
-  "row": 0,
-  "col": 1
-}
-
-###
-
-POST http://localhost:8080/api/game/spawn
-Content-Type: application/json
-
-{
-  "type": "FIGHTER",
-  "row": 0,
-  "col": 2
-}
-
-###
-
-POST http://localhost:8080/api/game/spawn
-Content-Type: application/json
-
-{
-  "type": "FIGHTER",
-  "row": 0,
-  "col": 3
-}
-
-###
-
-POST http://localhost:8080/api/game/spawn
-Content-Type: application/json
-
-{
-  "type": "FIGHTER",
-  "row": 0,
-  "col": 4
-}
-
-###
-
-# ยิงเกิน limit (ควร fail หรือ success=false)
-POST http://localhost:8080/api/game/spawn
-Content-Type: application/json
-
-{
-  "type": "FIGHTER",
-  "row": 0,
-  "col": 5
-}
-
-###
-
-### ===============================
-### TEST 15 – Spawn นอกเขต
-### ===============================
-
+### P2 FREE SPAWN
 POST http://localhost:8080/api/game/spawn
 Content-Type: application/json
 
@@ -224,94 +120,73 @@ Content-Type: application/json
 
 ###
 
-### ===============================
-### TEST 16 – Spawn ตอนยังไม่ PLAYING
-### ===============================
+### CHECK PHASE (ต้องเป็น BUY_HEX)
+GET http://localhost:8080/api/game/phase
 
-# รีสตาร์ทเกมก่อนยิงอันนี้
+###
+
+### BUY HEX (ได้ 1 ครั้ง)
+POST http://localhost:8080/api/game/buy-hex
+Content-Type: application/json
+
+{
+  "row": 2,
+  "col": 1
+}
+
+###
+
+### BUY HEX ซ้ำ (ต้อง fail)
+POST http://localhost:8080/api/game/buy-hex
+Content-Type: application/json
+
+{
+  "row": 2,
+  "col": 2
+}
+
+###
+
+### SPAWN ปกติ (ได้ 1 ครั้ง)
 POST http://localhost:8080/api/game/spawn
 Content-Type: application/json
 
 {
   "type": "FIGHTER",
   "row": 0,
-  "col": 0
+  "col": 1
 }
 
 ###
 
-### ===============================
-### TEST 17 – Strategy Syntax Error
-### ===============================
-
-POST http://localhost:8080/api/game/setup/full/1
-Content-Type: application/json
-
-[
-  {
-    "type": "FIGHTER",
-    "defenseFactor": 1,
-    "strategy": "move up up up;"
-  }
-]
+### CHECK PHASE (ต้องเป็น ACTION)
+GET http://localhost:8080/api/game/phase
 
 ###
 
-### ===============================
-### TEST 18 – Division by Zero
-### ===============================
-
-POST http://localhost:8080/api/game/setup/full/1
-Content-Type: application/json
-
-[
-  {
-    "type": "FIGHTER",
-    "defenseFactor": 1,
-    "strategy": "x = 1 / 0; move up; done;"
-  }
-]
-
-###
-
-### ===============================
-### TEST 19 – Infinite Loop Protection
-### ===============================
-
-POST http://localhost:8080/api/game/setup/full/1
-Content-Type: application/json
-
-[
-  {
-    "type": "FIGHTER",
-    "defenseFactor": 1,
-    "strategy": "while (1) { move up; }"
-  }
-]
-
-###
-
-### ===============================
-### TEST 20 – MaxTurns Game End
-### ===============================
-
-POST http://localhost:8080/api/game/config
+### SPAWN ซ้ำทันที (ต้อง fail)
+POST http://localhost:8080/api/game/spawn
 Content-Type: application/json
 
 {
-  "spawnCost": 100,
-  "hexPurchaseCost": 1000,
-  "initBudget": 10000,
-  "initHp": 100,
-  "turnBudget": 90,
-  "maxBudget": 23456,
-  "interestPct": 5,
-  "maxTurns": 2,
-  "maxSpawns": 5
+  "type": "FIGHTER",
+  "row": 0,
+  "col": 2
 }
 
 ###
 
-GET http://localhost:8080/api/game/status
+### END TURN
+POST http://localhost:8080/api/game/end-turn
+
+###
+
+### CHECK PHASE (ต้องกลับเป็น BUY_HEX)
+GET http://localhost:8080/api/game/phase
+
+###
+
+### CHECK STATE
+GET http://localhost:8080/api/game/state
 
 ###

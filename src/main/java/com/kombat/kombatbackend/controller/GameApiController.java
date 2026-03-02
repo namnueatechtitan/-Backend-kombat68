@@ -3,7 +3,8 @@ package com.kombat.kombatbackend.controller;
 import com.kombat.kombatbackend.engine.gamestate.*;
 import com.kombat.kombatbackend.dto.*;
 import com.kombat.kombatbackend.service.GameService;
-
+import com.kombat.kombatbackend.dto.GameStateDto;
+import com.kombat.kombatbackend.dto.MinionDto;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
@@ -24,8 +25,8 @@ public class GameApiController {
     }
 
     // =====================================================
-    // CONFIG (ใช้ DTO ไม่ expose GameConfig ตรง ๆ)
-    // =====================================================
+// CONFIG (ใช้ DTO ไม่ expose GameConfig ตรง ๆ)
+// =====================================================
 
     @GetMapping("/config")
     public ResponseEntity<?> getConfig() {
@@ -34,6 +35,13 @@ public class GameApiController {
 
     @PostMapping("/config")
     public ResponseEntity<?> setConfig(@RequestBody ConfigRequest request) {
+
+        //  ห้ามเปลี่ยน config หลังเกมเริ่มแล้ว
+        if (gameService.getGameState() != null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Cannot change config after game started"
+            ));
+        }
 
         GameConfig config = new GameConfig(
                 request.getSpawnCost(),
@@ -54,7 +62,6 @@ public class GameApiController {
                 "phase", gameService.getPhase()
         ));
     }
-
     // =====================================================
     // MODE
     // =====================================================
@@ -107,22 +114,34 @@ public class GameApiController {
             @PathVariable long playerId,
             @RequestBody List<MinionStrategyRequest> minions) {
 
-        gameService.resetMinions(playerId);
+        try {
 
-        for (MinionStrategyRequest request : minions) {
-            gameService.addMinion(
-                    playerId,
-                    request.getType(),
-                    request.getDefenseFactor(),
-                    request.getStrategy()
-            );
+            gameService.resetMinions(playerId);
+
+            for (MinionStrategyRequest request : minions) {
+                gameService.addMinion(
+                        playerId,
+                        request.getType(),
+                        request.getDefenseFactor(),
+                        request.getStrategy()
+                );
+            }
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Setup completed",
+                    "player", playerId,
+                    "phase", gameService.getPhase()
+            ));
+
+        } catch (RuntimeException e) {
+
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of(
+                            "error", "Invalid strategy",
+                            "message", e.getMessage()
+                    ));
         }
-
-        return ResponseEntity.ok(Map.of(
-                "message", "Setup completed",
-                "player", playerId,
-                "phase", gameService.getPhase()
-        ));
     }
 
     // =====================================================
@@ -131,13 +150,21 @@ public class GameApiController {
 
     @PostMapping("/start")
     public ResponseEntity<?> startGame() {
+
+        if (gameService.getPhase() == GamePhase.PLAYING) {
+            return ResponseEntity.ok(Map.of(
+                    "message", "Game already started",
+                    "phase", gameService.getPhase()
+            ));
+        }
+
         gameService.startGame();
+
         return ResponseEntity.ok(Map.of(
                 "message", "Game started",
                 "phase", gameService.getPhase()
         ));
     }
-
     // =====================================================
     // TURN CONTROL
     // =====================================================
@@ -189,7 +216,9 @@ public class GameApiController {
 
         return ResponseEntity.ok(Map.of(
                 "success", success,
-                "phase", gameService.getPhase()
+                "phase", gameService.getTurnPhase(),
+                "currentPlayer", gameService.getCurrentPlayer(),
+                "turn", gameService.getGameState().getTurnNumber()
         ));
     }
 
@@ -217,20 +246,46 @@ public class GameApiController {
         GameState state = gameService.getGameState();
 
         if (state == null) {
-            return ResponseEntity
-                    .badRequest()
+            return ResponseEntity.badRequest()
                     .body("Game has not started yet");
         }
+
+        GameStateDto dto = convert(state);
 
         GameStatusResponse response =
                 new GameStatusResponse(
                         gameService.getCurrentPlayer(),
                         gameService.isGameOver(),
                         gameService.getWinner(),
-                        state
+                        dto
                 );
 
+        response.setSpawnableHexes(
+                gameService.getSpawnableHexes()
+        );
+
         return ResponseEntity.ok(response);
+    }
+    private GameStateDto convert(GameState state) {
+
+        List<MinionDto> minions = state.getMinions().stream()
+                .map(m -> new MinionDto(
+                        m.getOwnerId(),
+                        m.getType().name(),
+                        m.getPosition().getX(),
+                        m.getPosition().getY()
+                ))
+                .toList();
+
+        long budget = state.getBudgetManager()
+                .getBudget(gameService.getCurrentPlayer());
+
+        return new GameStateDto(
+                state.getTurnNumber(),
+                state.getPhase().name(),
+                minions,
+                budget
+        );
     }
 
     // =====================================================
@@ -239,7 +294,7 @@ public class GameApiController {
 
     @GetMapping("/phase")
     public ResponseEntity<?> getPhase() {
-        return ResponseEntity.ok(gameService.getPhase());
+        return ResponseEntity.ok(gameService.getTurnPhase());
     }
     @PostMapping("/init-full")
     public ResponseEntity<?> initFullGame(

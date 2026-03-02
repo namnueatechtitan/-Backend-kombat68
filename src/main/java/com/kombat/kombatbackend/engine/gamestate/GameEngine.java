@@ -2,7 +2,7 @@ package com.kombat.kombatbackend.engine.gamestate;
 
 import com.kombat.kombatbackend.engine.evaluator.Evaluator;
 import com.kombat.kombatbackend.engine.strategy.*;
-
+import com.kombat.kombatbackend.dto.SpawnableHexDto;
 import java.util.*;
 
 public class GameEngine {
@@ -15,6 +15,8 @@ public class GameEngine {
     private final MockGameState mockGameState;
     private final Evaluator evaluator = new Evaluator();
 
+    private boolean boughtThisTurn = false;
+    private boolean spawnedThisTurn = false;
     private long currentPlayer = P1;
 
     private long turnsPlayedP1 = 0;
@@ -23,10 +25,13 @@ public class GameEngine {
     private long spawnsUsedP1 = 0;
     private long spawnsUsedP2 = 0;
 
+    // ✅ NEW: แยก free spawn ออกจาก quota ปกติ
+    private boolean freeSpawnDoneP1 = false;
+    private boolean freeSpawnDoneP2 = false;
+
     private final boolean[][] territoryP1 = new boolean[8][8];
     private final boolean[][] territoryP2 = new boolean[8][8];
 
-    // evaluator context
     private final Map<String, Long> localVars = new HashMap<>();
     private final Map<String, Long> globalVars = new HashMap<>();
     private final List<String> actionLog = new ArrayList<>();
@@ -41,12 +46,19 @@ public class GameEngine {
 
         initDefaultTerritories();
     }
-
     // =====================================================
     // TURN LIFECYCLE
     // =====================================================
 
     public void executeTurn() {
+
+        // ถ้ายังกด End Turn ตอน BUY_HEX ให้บังคับเข้า ACTION ก่อน
+        if (gameState.getPhase() == TurnPhase.BUY_HEX) {
+            gameState.setPhase(TurnPhase.ACTION);
+        }
+
+        if (gameState.getPhase() != TurnPhase.ACTION)
+            return;
 
         beginTurn();
         runStrategies(currentPlayer);
@@ -56,12 +68,24 @@ public class GameEngine {
 
         gameState.advanceTurn();
 
+        switchPlayer();
+        gameState.setPhase(TurnPhase.BUY_HEX);
+    }
+    private void switchPlayer() {
         currentPlayer = (currentPlayer == P1) ? P2 : P1;
+
+        //  reset ต่อเทิร์น
+        boughtThisTurn = false;
+        spawnedThisTurn = false;
     }
 
     private void beginTurn() {
 
         long pid = currentPlayer;
+
+        // reset ต่อเทิร์น
+        boughtThisTurn = false;
+        spawnedThisTurn = false;
 
         long add = config.turnBudget();
         if (add > 0)
@@ -77,28 +101,108 @@ public class GameEngine {
 
     public boolean buyHex(int x, int y) {
 
-        if (!gameState.getBoard().isInsideBoard(x, y)) return false;
-        if (isInAnyTerritory(x, y)) return false;
-        if (!isAdjacentToTerritory(currentPlayer, x, y)) return false;
-
-        long cost = config.hexPurchaseCost();
-        if (gameState.getBudgetManager().getBudget(currentPlayer) < cost)
+        if (gameState.getPhase() != TurnPhase.BUY_HEX)
             return false;
 
-        gameState.getBudgetManager().spendBudget(currentPlayer, cost);
+        if (boughtThisTurn)
+            return false;
+
+        if (!gameState.getBoard().isInsideBoard(x, y))
+            return false;
+
+        if (isInAnyTerritory(x, y))
+            return false;
+
+        if (!isAdjacentToTerritory(currentPlayer, x, y))
+            return false;
+
+        long cost = config.hexPurchaseCost();
+
+        if (gameState.getBudgetManager()
+                .getBudget(currentPlayer) < cost)
+            return false;
+
+        gameState.getBudgetManager()
+                .spendBudget(currentPlayer, cost);
+
         territory(currentPlayer)[x][y] = true;
+
+        boughtThisTurn = true;
 
         return true;
     }
-
     public boolean spawn(String typeName, int x, int y) {
+        System.out.println(">>> NEW SPAWN LOGIC ACTIVE <<<");
 
-        if (!gameState.getBoard().isInsideBoard(x, y)) return false;
-        if (!territory(currentPlayer)[x][y]) return false;
-        if (spawnsUsed(currentPlayer) >= config.maxSpawns()) return false;
+        if (!gameState.getBoard().isInsideBoard(x, y))
+            return false;
+
+        if (!territory(currentPlayer)[x][y])
+            return false;
+
+        // ===== FREE SPAWN =====
+        if (gameState.getPhase() == TurnPhase.FREE_SPAWN) {
+
+            if (currentPlayer == P1 && !freeSpawnDoneP1) {
+
+                try {
+                    gameState.spawnMinion(
+                            currentPlayer,
+                            typeName,
+                            (int) config.initHp(),
+                            x,
+                            y);
+                } catch (Exception e) {
+                    return false;
+                }
+
+                freeSpawnDoneP1 = true;
+
+                switchPlayer();
+                return true;
+            }
+
+            if (currentPlayer == P2 && !freeSpawnDoneP2) {
+
+                try {
+                    gameState.spawnMinion(
+                            currentPlayer,
+                            typeName,
+                            (int) config.initHp(),
+                            x,
+                            y);
+                } catch (Exception e) {
+                    return false;
+                }
+
+                freeSpawnDoneP2 = true;
+
+                switchPlayer();   //
+                gameState.setPhase(TurnPhase.BUY_HEX);
+
+                return true;
+            }
+        }
+        // ===== NORMAL TURN =====
+        if (gameState.getPhase() != TurnPhase.BUY_HEX)
+            return false;
+
+        if (spawnedThisTurn)
+            return false;
+
+        if (spawnsUsed(currentPlayer) >= config.maxSpawns())
+            return false;
+
+        if (gameState.getBudgetManager()
+                .getBudget(currentPlayer) < config.spawnCost())
+            return false;
+
+        gameState.getBudgetManager()
+                .spendBudget(currentPlayer, config.spawnCost());
 
         try {
-            gameState.spawnMinion(currentPlayer,
+            gameState.spawnMinion(
+                    currentPlayer,
                     typeName,
                     (int) config.initHp(),
                     x,
@@ -108,12 +212,24 @@ public class GameEngine {
         }
 
         incrementSpawns(currentPlayer);
+        spawnedThisTurn = true;
+
+        gameState.setPhase(TurnPhase.ACTION);
+
         return true;
     }
 
     // =====================================================
+    // (ส่วน Strategy / Win Condition / Helpers เดิมคงไว้)
+    // =====================================================
+
+    public long getCurrentPlayer() {
+        return currentPlayer;
+    }
+    // =====================================================
     // STRATEGY EXECUTION
     // =====================================================
+
     private void runStrategies(long pid) {
 
         actionLog.clear();
@@ -206,6 +322,7 @@ public class GameEngine {
                 exec
         );
     }
+
     // =====================================================
     // WIN CONDITION
     // =====================================================
@@ -312,27 +429,42 @@ public class GameEngine {
     private boolean isInAnyTerritory(int x, int y) {
         return territoryP1[x][y] || territoryP2[x][y];
     }
-
-    private boolean isAdjacentToTerritory(long pid, int x, int y) {
-
-        int[][] deltas = {
-                {-1, 0}, {-1, 1},
-                {0, 1}, {1, 0},
-                {1, -1}, {0, -1}
-        };
+    private boolean isAdjacentToTerritory(long pid, int row, int col) {
 
         boolean[][] terr = territory(pid);
 
-        for (int[] d : deltas) {
-            int nx = x + d[0];
-            int ny = y + d[1];
-            if (gameState.getBoard().isInsideBoard(nx, ny)
-                    && terr[nx][ny])
+        boolean isOddRow = (row % 2 == 1);
+
+        int[][] directions;
+
+        if (isOddRow) {
+            directions = new int[][]{
+                    {0, -1}, {0, 1},
+                    {-1, 0}, {-1, 1},
+                    {1, 0}, {1, 1}
+            };
+        } else {
+            directions = new int[][]{
+                    {0, -1}, {0, 1},
+                    {-1, -1}, {-1, 0},
+                    {1, -1}, {1, 0}
+            };
+        }
+
+        for (int[] d : directions) {
+            int nr = row + d[0];
+            int nc = col + d[1];
+
+            if (gameState.getBoard().isInsideBoard(nr, nc)
+                    && terr[nr][nc]) {
                 return true;
+            }
         }
 
         return false;
     }
+
+
 
     private int countLiving(long pid) {
         int count = 0;
@@ -360,8 +492,24 @@ public class GameEngine {
         if (pid == P2) spawnsUsedP2++;
         else spawnsUsedP1++;
     }
+    public List<SpawnableHexDto> getSpawnableHexes() {
 
-    public long getCurrentPlayer() {
-        return currentPlayer;
+        List<SpawnableHexDto> result = new ArrayList<>();
+
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+
+                if (territoryP1[r][c]) {
+                    result.add(new SpawnableHexDto(r, c, P1));
+                }
+
+                if (territoryP2[r][c]) {
+                    result.add(new SpawnableHexDto(r, c, P2));
+                }
+            }
+        }
+
+        return result;
     }
+
 }

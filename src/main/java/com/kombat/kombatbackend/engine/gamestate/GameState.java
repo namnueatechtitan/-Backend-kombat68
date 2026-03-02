@@ -237,12 +237,6 @@ public class GameState {
                     "Spawn position already occupied: x=" + x + ",y=" + y);
         }
 
-        // ราคาเท่ากันทุก type: spawn_cost
-        long cost = config.spawnCost();
-        if (cost > 0) {
-            budgetManager.spendBudget(ownerId, cost);
-        }
-
         Minion m = new Minion(
                 initialHp,
                 def.getDefenseFactor(),
