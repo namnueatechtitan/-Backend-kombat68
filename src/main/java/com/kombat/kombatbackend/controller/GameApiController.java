@@ -179,7 +179,8 @@ public class GameApiController {
         gameService.endTurn();
         return ResponseEntity.ok(Map.of(
                 "message", "Turn ended",
-                "phase", gameService.getPhase()
+                "phase", gameService.getPhase(),
+                "actionLogs", gameService.getActionLogs()
         ));
     }
 
@@ -274,6 +275,10 @@ public class GameApiController {
 
         response.setBuyableHexes(
                 gameService.getBuyableHexes()
+        );
+
+        response.setActionLogs(
+                gameService.getActionLogs()
         );
 
         return ResponseEntity.ok(response);

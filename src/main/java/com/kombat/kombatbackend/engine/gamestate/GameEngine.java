@@ -540,4 +540,8 @@ public class GameEngine {
         return result;
     }
 
+    public List<String> getActionLogs() {
+        return List.copyOf(actionLog);
+    }
+
 }

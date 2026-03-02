@@ -87,23 +87,59 @@ class GameServiceFreeSpawnFlowTest {
         assertEquals(1, service.getSpawnsLeft());
     }
 
+    @Test
+    void actionLogsAreAvailableAfterEndTurnExecutesStrategies() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest());
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        service.endTurn();
+
+        var actionLogs = service.getActionLogs();
+        assertFalse(actionLogs.isEmpty());
+        assertTrue(actionLogs.stream().anyMatch(log -> log.contains("DONE")));
+    }
+
+    @Test
+    void moveStrategyConsumesExactlyOneBudgetInExecution() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest("move down; done;", "done;"));
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        long budgetBefore = service.getGameState().getBudgetManager().getBudget(GameService.P1);
+
+        service.endTurn();
+
+        long budgetAfter = service.getGameState().getBudgetManager().getBudget(GameService.P1);
+        assertEquals(budgetBefore - 1, budgetAfter);
+        assertTrue(service.getActionLogs().stream().anyMatch(log -> log.contains("MOVE DOWN")));
+    }
+
     private static GameInitRequest buildRequest() {
+        return buildRequest("done;", "done;");
+    }
+
+    private static GameInitRequest buildRequest(String p1Strategy, String p2Strategy) {
         GameInitRequest req = new GameInitRequest();
         req.setConfig(new GameConfig(100, 1000, 1000, 100, 90, 5000, 0, 10, 2));
         req.setMode(GameMode.DUEL);
-        req.setPlayer1(buildPlayer());
-        req.setPlayer2(buildPlayer());
+        req.setPlayer1(buildPlayer(p1Strategy));
+        req.setPlayer2(buildPlayer(p2Strategy));
         return req;
     }
 
-    private static PlayerSetupRequest buildPlayer() {
+    private static PlayerSetupRequest buildPlayer(String strategyCode) {
         PlayerSetupRequest player = new PlayerSetupRequest();
         player.setCharacter(CharacterType.HUMAN);
 
         MinionSetup fighter = new MinionSetup();
         fighter.setType("FIGHTER");
         fighter.setDefenseFactor(1);
-        fighter.setStrategy("done;");
+        fighter.setStrategy(strategyCode);
 
         player.setMinions(List.of(fighter));
         return player;
