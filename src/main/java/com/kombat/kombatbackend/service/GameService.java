@@ -186,6 +186,7 @@ public class GameService {
         );
 
         MockGameState mg = new MockGameState(gs);
+        mg.setTerritoryRule((pid, x, y) -> engineCanEnterTerritory(pid, x, y));
 
         for (MinionKindDef def : getSelectedMinions(P1)) {
             gs.registerKind(P1, def);
@@ -201,6 +202,20 @@ public class GameService {
         this.engine = new GameEngine(config, gs, mg);
 
         phase = GamePhase.PLAYING;
+    }
+
+    private boolean engineCanEnterTerritory(long pid, int x, int y) {
+
+        if (gameState == null || !gameState.getBoard().isInsideBoard(x, y)) {
+            return false;
+        }
+
+        if (engine == null) {
+            return true;
+        }
+
+        return engine.getSpawnableHexes().stream()
+                .anyMatch(hex -> hex.getRow() == x && hex.getCol() == y && hex.getOwnerId() == pid);
     }
 
     // ================= GAMEPLAY =================
@@ -315,5 +330,32 @@ public class GameService {
     public TurnPhase getTurnPhase() {
         if (gameState == null) return null;
         return gameState.getPhase();
+    }
+
+    public List<SpawnableHexDto> getBuyableHexes() {
+
+        if (engine == null || phase != GamePhase.PLAYING) {
+            return List.of();
+        }
+
+        return engine.getBuyableHexes(getCurrentPlayer());
+    }
+
+    public long getSpawnsLeft() {
+
+        if (engine == null || phase != GamePhase.PLAYING) {
+            return 0L;
+        }
+
+        return engine.getSpawnsLeft(getCurrentPlayer());
+    }
+
+    public List<String> getActionLogs() {
+
+        if (engine == null || (phase != GamePhase.PLAYING && phase != GamePhase.FINISHED)) {
+            return List.of();
+        }
+
+        return engine.getActionLogs();
     }
 }

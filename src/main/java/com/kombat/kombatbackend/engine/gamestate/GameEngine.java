@@ -100,9 +100,6 @@ public class GameEngine {
         if (gameState.getPhase() != TurnPhase.PLAYER_ACTION)
             return false;
 
-        if (spawnedThisTurn)
-            return false;
-
         if (boughtThisTurn)
             return false;
 
@@ -137,52 +134,37 @@ public class GameEngine {
         if (!territory(currentPlayer)[x][y])
             return false;
 
-        // ===== FREE SPAWN =====
         if (gameState.getPhase() == TurnPhase.FREE_SPAWN) {
-
-            if (currentPlayer == P1 && !freeSpawnDoneP1) {
-
-                try {
-                    gameState.spawnMinion(
-                            currentPlayer,
-                            typeName,
-                            (int) config.initHp(),
-                            x,
-                            y);
-                } catch (Exception e) {
-                    return false;
-                }
-
-                freeSpawnDoneP1 = true;
-
-                switchPlayer();
-                return true;
-            }
-
-            if (currentPlayer == P2 && !freeSpawnDoneP2) {
-
-                try {
-                    gameState.spawnMinion(
-                            currentPlayer,
-                            typeName,
-                            (int) config.initHp(),
-                            x,
-                            y);
-                } catch (Exception e) {
-                    return false;
-                }
-
-                freeSpawnDoneP2 = true;
-
-                switchPlayer();
-                startPlayerActionPhase();
-
-                return true;
-            }
+            return handleFreeSpawn(typeName, x, y);
         }
-        // ===== NORMAL TURN =====
+
         if (gameState.getPhase() != TurnPhase.PLAYER_ACTION)
             return false;
+
+        return handleNormalSpawn(typeName, x, y);
+    }
+
+    private boolean handleFreeSpawn(String typeName, int x, int y) {
+        if (isFreeSpawnDoneForCurrentPlayer()) {
+            return false;
+        }
+
+        if (!trySpawnMinion(currentPlayer, typeName, x, y)) {
+            return false;
+        }
+
+        markFreeSpawnDone(currentPlayer);
+
+        if (freeSpawnDoneP1 && freeSpawnDoneP2) {
+            startFirstActionTurn();
+        } else {
+            switchPlayer();
+        }
+
+        return true;
+    }
+
+    private boolean handleNormalSpawn(String typeName, int x, int y) {
 
         if (spawnedThisTurn)
             return false;
@@ -197,14 +179,9 @@ public class GameEngine {
         gameState.getBudgetManager()
                 .spendBudget(currentPlayer, config.spawnCost());
 
-        try {
-            gameState.spawnMinion(
-                    currentPlayer,
-                    typeName,
-                    (int) config.initHp(),
-                    x,
-                    y);
-        } catch (Exception e) {
+        if (!trySpawnMinion(currentPlayer, typeName, x, y)) {
+            gameState.getBudgetManager()
+                    .addBudget(currentPlayer, config.spawnCost());
             return false;
         }
 
@@ -216,6 +193,38 @@ public class GameEngine {
 
     public long getCurrentPlayer() {
         return currentPlayer;
+    }
+
+    private void startFirstActionTurn() {
+        currentPlayer = P1;
+        gameState.advanceTurn();
+        startPlayerActionPhase();
+    }
+
+    private boolean trySpawnMinion(long playerId, String typeName, int x, int y) {
+        try {
+            gameState.spawnMinion(
+                    playerId,
+                    typeName,
+                    (int) config.initHp(),
+                    x,
+                    y);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private boolean isFreeSpawnDoneForCurrentPlayer() {
+        return currentPlayer == P1 ? freeSpawnDoneP1 : freeSpawnDoneP2;
+    }
+
+    private void markFreeSpawnDone(long playerId) {
+        if (playerId == P1) {
+            freeSpawnDoneP1 = true;
+        } else {
+            freeSpawnDoneP2 = true;
+        }
     }
     // =====================================================
     // STRATEGY EXECUTION
@@ -479,6 +488,10 @@ public class GameEngine {
         return (pid == P2) ? spawnsUsedP2 : spawnsUsedP1;
     }
 
+    public long getSpawnsLeft(long playerId) {
+        return Math.max(0L, config.maxSpawns() - spawnsUsed(playerId));
+    }
+
     private void incrementSpawns(long pid) {
         if (pid == P2) spawnsUsedP2++;
         else spawnsUsedP1++;
@@ -501,6 +514,34 @@ public class GameEngine {
         }
 
         return result;
+    }
+
+    public List<SpawnableHexDto> getBuyableHexes(long playerId) {
+
+        List<SpawnableHexDto> result = new ArrayList<>();
+
+        if (gameState.getPhase() != TurnPhase.PLAYER_ACTION) {
+            return result;
+        }
+
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+
+                if (isInAnyTerritory(r, c)) {
+                    continue;
+                }
+
+                if (isAdjacentToTerritory(playerId, r, c)) {
+                    result.add(new SpawnableHexDto(r, c, playerId));
+                }
+            }
+        }
+
+        return result;
+    }
+
+    public List<String> getActionLogs() {
+        return List.copyOf(actionLog);
     }
 
 }

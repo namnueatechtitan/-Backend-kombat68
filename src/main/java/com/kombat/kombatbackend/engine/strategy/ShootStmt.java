@@ -33,8 +33,6 @@ public class ShootStmt implements Stmt {
             ctx.log("SHOOT " + dir + " x=" + x + " STOP(no-budget) Budget:" + before);
             throw new StopEvaluation("no budget for shoot");
         }
-
-        game.decreaseBudget(pid, cost);
         MockGameState.AttackResult r = game.shoot(dir, x);
 
         ctx.log("SHOOT " + dir + " x=" + x + " " + r
