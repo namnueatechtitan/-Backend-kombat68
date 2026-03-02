@@ -236,7 +236,7 @@ public class GameApiController {
 
         Map<String, Object> body = Map.of(
                 "success", success,
-                "phase", gameService.getPhase()
+                "phase", gameService.getTurnPhase()
         );
 
         return success
