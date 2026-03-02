@@ -214,12 +214,16 @@ public class GameApiController {
                 request.getCol()
         );
 
-        return ResponseEntity.ok(Map.of(
+        Map<String, Object> body = Map.of(
                 "success", success,
                 "phase", gameService.getTurnPhase(),
                 "currentPlayer", gameService.getCurrentPlayer(),
                 "turn", gameService.getGameState().getTurnNumber()
-        ));
+        );
+
+        return success
+                ? ResponseEntity.ok(body)
+                : ResponseEntity.badRequest().body(body);
     }
 
     @PostMapping("/buy-hex")
@@ -230,10 +234,14 @@ public class GameApiController {
                 request.getCol()
         );
 
-        return ResponseEntity.ok(Map.of(
+        Map<String, Object> body = Map.of(
                 "success", success,
                 "phase", gameService.getPhase()
-        ));
+        );
+
+        return success
+                ? ResponseEntity.ok(body)
+                : ResponseEntity.badRequest().body(body);
     }
 
     // =====================================================
