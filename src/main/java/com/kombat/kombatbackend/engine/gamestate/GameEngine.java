@@ -55,6 +55,8 @@ public class GameEngine {
             return;
 
         gameState.setPhase(TurnPhase.EXECUTION);
+
+        beginTurn();
         runStrategies(currentPlayer);
 
         if (currentPlayer == P1) turnsPlayedP1++;
@@ -63,12 +65,7 @@ public class GameEngine {
         gameState.advanceTurn();
 
         switchPlayer();
-        startPlayerActionPhase();
-    }
-
-    private void startPlayerActionPhase() {
         gameState.setPhase(TurnPhase.PLAYER_ACTION);
-        beginTurn();
     }
     private void switchPlayer() {
         currentPlayer = (currentPlayer == P1) ? P2 : P1;
@@ -180,8 +177,8 @@ public class GameEngine {
 
                 freeSpawnDoneP2 = true;
 
-                switchPlayer();
-                startPlayerActionPhase();
+                switchPlayer();   //
+                gameState.setPhase(TurnPhase.PLAYER_ACTION);
 
                 return true;
             }
