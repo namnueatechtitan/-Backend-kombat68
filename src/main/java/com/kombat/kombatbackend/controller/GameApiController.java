@@ -272,6 +272,10 @@ public class GameApiController {
                 gameService.getSpawnableHexes()
         );
 
+        response.setBuyableHexes(
+                gameService.getBuyableHexes()
+        );
+
         return ResponseEntity.ok(response);
     }
     private GameStateDto convert(GameState state) {
@@ -288,11 +292,14 @@ public class GameApiController {
         long budget = state.getBudgetManager()
                 .getBudget(gameService.getCurrentPlayer());
 
+        long spawnsLeft = gameService.getSpawnsLeft();
+
         return new GameStateDto(
                 state.getTurnNumber(),
                 state.getPhase().name(),
                 minions,
-                budget
+                budget,
+                spawnsLeft
         );
     }
 
