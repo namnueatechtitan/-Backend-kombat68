@@ -179,7 +179,8 @@ public class GameApiController {
         gameService.endTurn();
         return ResponseEntity.ok(Map.of(
                 "message", "Turn ended",
-                "phase", gameService.getPhase()
+                "phase", gameService.getPhase(),
+                "actionLogs", gameService.getActionLogs()
         ));
     }
 
@@ -272,6 +273,14 @@ public class GameApiController {
                 gameService.getSpawnableHexes()
         );
 
+        response.setBuyableHexes(
+                gameService.getBuyableHexes()
+        );
+
+        response.setActionLogs(
+                gameService.getActionLogs()
+        );
+
         return ResponseEntity.ok(response);
     }
     private GameStateDto convert(GameState state) {
@@ -288,11 +297,14 @@ public class GameApiController {
         long budget = state.getBudgetManager()
                 .getBudget(gameService.getCurrentPlayer());
 
+        long spawnsLeft = gameService.getSpawnsLeft();
+
         return new GameStateDto(
                 state.getTurnNumber(),
                 state.getPhase().name(),
                 minions,
-                budget
+                budget,
+                spawnsLeft
         );
     }
 
