@@ -488,6 +488,10 @@ public class GameEngine {
         return (pid == P2) ? spawnsUsedP2 : spawnsUsedP1;
     }
 
+    public long getSpawnsLeft(long playerId) {
+        return Math.max(0L, config.maxSpawns() - spawnsUsed(playerId));
+    }
+
     private void incrementSpawns(long pid) {
         if (pid == P2) spawnsUsedP2++;
         else spawnsUsedP1++;

@@ -325,4 +325,13 @@ public class GameService {
 
         return engine.getBuyableHexes(getCurrentPlayer());
     }
+
+    public long getSpawnsLeft() {
+
+        if (engine == null || phase != GamePhase.PLAYING) {
+            return 0L;
+        }
+
+        return engine.getSpawnsLeft(getCurrentPlayer());
+    }
 }

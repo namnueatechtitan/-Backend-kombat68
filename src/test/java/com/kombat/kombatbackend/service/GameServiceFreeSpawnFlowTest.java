@@ -72,6 +72,21 @@ class GameServiceFreeSpawnFlowTest {
         );
     }
 
+    @Test
+    void spawnsLeftDecreasesAfterSpawnInPlayerActionPhase() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest());
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        assertEquals(2, service.getSpawnsLeft());
+
+        assertTrue(service.spawn("FIGHTER", 0, 1));
+
+        assertEquals(1, service.getSpawnsLeft());
+    }
+
     private static GameInitRequest buildRequest() {
         GameInitRequest req = new GameInitRequest();
         req.setConfig(new GameConfig(100, 1000, 1000, 100, 90, 5000, 0, 10, 2));
