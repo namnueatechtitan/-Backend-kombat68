@@ -124,7 +124,7 @@ public class GameService {
                 board,
                 minions,
                 budgetManager,
-                TurnPhase.SETUP,
+                TurnPhase.PLAYER_ACTION,
                 config
         );
 
@@ -172,6 +172,8 @@ public class GameService {
 
         Board board = new Board();
         BudgetManager budget = new BudgetManager(config.initBudget());
+        budget.initPlayer(P1, config.initBudget());
+        budget.initPlayer(P2, config.initBudget());
         List<Minion> minions = new ArrayList<>();
 
         // 🔥 เปลี่ยนแค่ตรงนี้
