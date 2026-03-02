@@ -25,7 +25,6 @@ public class GameEngine {
     private long spawnsUsedP1 = 0;
     private long spawnsUsedP2 = 0;
 
-    // ✅ NEW: แยก free spawn ออกจาก quota ปกติ
     private boolean freeSpawnDoneP1 = false;
     private boolean freeSpawnDoneP2 = false;
 
@@ -73,7 +72,6 @@ public class GameEngine {
     private void switchPlayer() {
         currentPlayer = (currentPlayer == P1) ? P2 : P1;
 
-        //  reset ต่อเทิร์น
         boughtThisTurn = false;
         spawnedThisTurn = false;
     }
@@ -82,7 +80,6 @@ public class GameEngine {
 
         long pid = currentPlayer;
 
-        // reset ต่อเทิร์น
         boughtThisTurn = false;
         spawnedThisTurn = false;
 
@@ -103,7 +100,6 @@ public class GameEngine {
         if (gameState.getPhase() != TurnPhase.PLAYER_ACTION)
             return false;
 
-        // ถ้าสpawnไปแล้ว เทิร์นนี้ห้ามกลับมาซื้อ (บังคับลำดับ ซื้อ -> spawn)
         if (spawnedThisTurn)
             return false;
 
@@ -135,8 +131,6 @@ public class GameEngine {
         return true;
     }
     public boolean spawn(String typeName, int x, int y) {
-        System.out.println(">>> NEW SPAWN LOGIC ACTIVE <<<");
-
         if (!gameState.getBoard().isInsideBoard(x, y))
             return false;
 
@@ -219,10 +213,6 @@ public class GameEngine {
 
         return true;
     }
-
-    // =====================================================
-    // (ส่วน Strategy / Win Condition / Helpers เดิมคงไว้)
-    // =====================================================
 
     public long getCurrentPlayer() {
         return currentPlayer;
