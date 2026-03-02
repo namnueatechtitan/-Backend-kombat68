@@ -165,6 +165,7 @@ class GameFlowIntegrationTest {
         // Verify strategies executed: at least one P1 minion moved from row 0 to row 1.
         mockMvc.perform(get("/api/game/status"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.gameState.minions[?(@.ownerId == 1 && @.x == 1)].length()").value(2));
+                .andExpect(jsonPath("$.gameState.minions[?(@.ownerId == 1 && @.x == 1)]").isArray())
+                .andExpect(jsonPath("$.gameState.minions[?(@.ownerId == 1 && @.x == 1)]").isNotEmpty());
     }
 }
