@@ -56,6 +56,22 @@ class GameServiceFreeSpawnFlowTest {
         assertTrue(service.buyHex(1, 2));
     }
 
+    @Test
+    void buyableHexesAreExposedForCurrentPlayerInPlayerActionPhase() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest());
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        var buyable = service.getBuyableHexes();
+
+        assertFalse(buyable.isEmpty());
+        assertTrue(
+                buyable.stream().anyMatch(h -> h.getRow() == 1 && h.getCol() == 2 && h.getOwnerId() == GameService.P1)
+        );
+    }
+
     private static GameInitRequest buildRequest() {
         GameInitRequest req = new GameInitRequest();
         req.setConfig(new GameConfig(100, 1000, 1000, 100, 90, 5000, 0, 10, 2));

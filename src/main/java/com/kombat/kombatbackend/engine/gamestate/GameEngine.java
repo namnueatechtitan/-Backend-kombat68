@@ -512,4 +512,28 @@ public class GameEngine {
         return result;
     }
 
+    public List<SpawnableHexDto> getBuyableHexes(long playerId) {
+
+        List<SpawnableHexDto> result = new ArrayList<>();
+
+        if (gameState.getPhase() != TurnPhase.PLAYER_ACTION) {
+            return result;
+        }
+
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+
+                if (isInAnyTerritory(r, c)) {
+                    continue;
+                }
+
+                if (isAdjacentToTerritory(playerId, r, c)) {
+                    result.add(new SpawnableHexDto(r, c, playerId));
+                }
+            }
+        }
+
+        return result;
+    }
+
 }
