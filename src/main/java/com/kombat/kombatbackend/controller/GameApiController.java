@@ -272,6 +272,10 @@ public class GameApiController {
                 gameService.getSpawnableHexes()
         );
 
+        response.setBuyableHexes(
+                gameService.getBuyableHexes()
+        );
+
         return ResponseEntity.ok(response);
     }
     private GameStateDto convert(GameState state) {

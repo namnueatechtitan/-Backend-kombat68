@@ -316,4 +316,13 @@ public class GameService {
         if (gameState == null) return null;
         return gameState.getPhase();
     }
+
+    public List<SpawnableHexDto> getBuyableHexes() {
+
+        if (engine == null || phase != GamePhase.PLAYING) {
+            return List.of();
+        }
+
+        return engine.getBuyableHexes(getCurrentPlayer());
+    }
 }

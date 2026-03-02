@@ -12,6 +12,7 @@ public class GameStatusResponse {
     private GameStateDto gameState;
 
     private List<SpawnableHexDto> spawnableHexes;
+    private List<SpawnableHexDto> buyableHexes;
 
     public GameStatusResponse() {
     }
@@ -50,6 +51,10 @@ public class GameStatusResponse {
         return spawnableHexes;
     }
 
+    public List<SpawnableHexDto> getBuyableHexes() {
+        return buyableHexes;
+    }
+
     // ==============================
     // SETTERS
     // ==============================
@@ -72,5 +77,9 @@ public class GameStatusResponse {
 
     public void setSpawnableHexes(List<SpawnableHexDto> spawnableHexes) {
         this.spawnableHexes = spawnableHexes;
+    }
+
+    public void setBuyableHexes(List<SpawnableHexDto> buyableHexes) {
+        this.buyableHexes = buyableHexes;
     }
 }
