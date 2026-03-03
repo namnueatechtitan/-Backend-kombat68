@@ -168,6 +168,21 @@ class GameServiceFreeSpawnFlowTest {
         assertTrue(service.getActionLogs().stream().anyMatch(log -> log.contains("P1 MOVE DOWNRIGHT")));
     }
 
+
+    @Test
+    void strategyExecutionUsesRuntimeGameStateNotParserDummyGame() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest("move down; done;", "done;"));
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        service.endTurn();
+
+        assertTrue(service.getActionLogs().stream().anyMatch(log -> log.contains("P1 MOVE DOWN")));
+        assertTrue(service.getActionLogs().stream().noneMatch(log -> log.contains("P0 MOVE")));
+    }
+
     @Test
     void playerEconomyContainsBothPlayersWithInterestAfterTurnProgress() {
         GameService service = new GameService();

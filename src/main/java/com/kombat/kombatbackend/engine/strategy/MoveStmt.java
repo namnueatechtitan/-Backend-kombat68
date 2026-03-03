@@ -19,19 +19,20 @@ public class MoveStmt implements Stmt {
     // 2) INTERFACE
     @Override
     public void exec(ExecContext ctx) {
-        long pid = game.currentPlayerId();
+        MockGameState g = ctx.getGameOr(game);
+        long pid = g.currentPlayerId();
 
         // spec: ถ้าไม่มีงบพอจ่าย 1 -> stop evaluation ทันที
-        if (game.getBudget(pid) < 1) {
+        if (g.getBudget(pid) < 1) {
             ctx.log("MOVE " + dir + " STOP(no-budget)");
             throw new StopEvaluation("no budget for move");
         }
 
-        long before = game.getBudget(pid);
-        boolean moved = game.moveCurrentMinion(dir);
+        long before = g.getBudget(pid);
+        boolean moved = g.moveCurrentMinion(dir);
 
         ctx.log("P" + pid + " MOVE " + dir + " " + (moved ? "OK" : "NO-OP")
-                + " Budget:" + before + "->" + game.getBudget(pid));
+                + " Budget:" + before + "->" + g.getBudget(pid));
     }
 
     @Override

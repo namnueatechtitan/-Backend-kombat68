@@ -400,7 +400,7 @@ public class GameEngine {
         };
 
         EvalContext eval = new EvalContext(localVars, globalVars, special, info);
-        ExecContext exec = new ExecContext(eval, localVars, globalVars, actionLog);
+        ExecContext exec = new ExecContext(eval, localVars, globalVars, actionLog, mockGameState);
 
         Map<Minion, Strategy> bindings =
                 gameState.buildStrategyBindings(pid);
