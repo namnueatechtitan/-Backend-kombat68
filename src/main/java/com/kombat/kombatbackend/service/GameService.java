@@ -25,6 +25,7 @@ public class GameService {
     private GameState gameState;
     private MockGameState mockGameState;
     private GameEngine engine;
+    private final GameReadService readService = new GameReadService();
 
     private GamePhase phase = GamePhase.NOT_CONFIGURED;
 
@@ -321,16 +322,26 @@ public class GameService {
         this.mockGameState = null;
     }
     public List<SpawnableHexDto> getSpawnableHexes() {
-
-        if (engine == null) {
-            return List.of();
-        }
-
-        return engine.getSpawnableHexes();
+        return readService.getSpawnableHexes(engine);
     }
     public TurnPhase getTurnPhase() {
-        if (gameState == null) return null;
-        return gameState.getPhase();
+        return readService.getTurnPhase(gameState);
+    }
+
+    public List<SpawnableHexDto> getBuyableHexes() {
+        return readService.getBuyableHexes(engine, phase, getCurrentPlayer());
+    }
+
+    public long getSpawnsLeft() {
+        return readService.getSpawnsLeft(engine, phase, getCurrentPlayer());
+    }
+
+    public List<String> getActionLogs() {
+        return readService.getActionLogs(engine, phase);
+    }
+
+    public Map<Long, PlayerEconomyDto> getPlayerEconomy() {
+        return readService.getPlayerEconomy(engine, gameState, phase, P1, P2);
     }
 
     public List<SpawnableHexDto> getBuyableHexes() {
