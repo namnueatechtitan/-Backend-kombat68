@@ -177,9 +177,14 @@ public class GameApiController {
     @PostMapping("/end-turn")
     public ResponseEntity<?> endTurn() {
         gameService.endTurn();
+
         return ResponseEntity.ok(Map.of(
-                "message", "Turn ended",
+                "message", gameService.isGameOver() ? "Game finished" : "Turn ended",
                 "phase", gameService.getPhase(),
+                "turnPhase", gameService.getTurnPhase(),
+                "gameOver", gameService.isGameOver(),
+                "winner", gameService.getWinner(),
+                "currentPlayer", gameService.getCurrentPlayer(),
                 "actionLogs", gameService.getActionLogs()
         ));
     }

@@ -233,11 +233,22 @@ public class GameService {
     }
 
     public void endTurn() {
+
+        if (phase == GamePhase.FINISHED) {
+            if (gameState != null) {
+                gameState.setPhase(TurnPhase.END);
+            }
+            return;
+        }
+
         requirePhase(GamePhase.PLAYING);
         engine.executeTurn();
 
         if (engine.isGameOver()) {
             phase = GamePhase.FINISHED;
+            if (gameState != null) {
+                gameState.setPhase(TurnPhase.END);
+            }
         }
     }
 
