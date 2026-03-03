@@ -62,13 +62,15 @@ final class GameReadService {
                 p1,
                 gameState.getBudgetManager().getBudget(p1),
                 engine.getSpawnsLeft(p1),
-                engine.getLastInterest(p1)
+                engine.getLastInterest(p1),
+                engine.getLastInterestRate(p1)
         ));
         result.put(p2, new PlayerEconomyDto(
                 p2,
                 gameState.getBudgetManager().getBudget(p2),
                 engine.getSpawnsLeft(p2),
-                engine.getLastInterest(p2)
+                engine.getLastInterest(p2),
+                engine.getLastInterestRate(p2)
         ));
         return result;
     }

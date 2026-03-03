@@ -91,8 +91,7 @@ public class GameEngine {
         if (add > 0)
             gameState.getBudgetManager().addBudget(pid, add);
 
-        long interest = applyInterest(pid);
-        setLastInterest(pid, interest);
+        applyInterest(pid);
         enforceMaxBudget(pid);
     }
 
@@ -386,7 +385,7 @@ public class GameEngine {
         long budget = gameState.getBudgetManager().getBudget(pid);
         if (budget < 1 || config.interestPct() <= 0) {
             setLastInterest(pid, 0L, 0L);
-            return;
+            return 0L;
         }
 
         long turns = (pid == P1) ? turnsPlayedP1 : turnsPlayedP2;
@@ -398,7 +397,7 @@ public class GameEngine {
 
         if (raw <= 0 || Double.isNaN(raw) || Double.isInfinite(raw)) {
             setLastInterest(pid, 0L, 0L);
-            return;
+            return 0L;
         }
 
         long interestRate = (long) raw;
@@ -408,11 +407,11 @@ public class GameEngine {
             gameState.getBudgetManager().addBudget(pid, interest);
         }
 
-        setLastInterest(
-                pid,
-                Math.max(0L, interest),
-                Math.max(0L, interestRate)
-        );
+        long safeInterest = Math.max(0L, interest);
+        long safeInterestRate = Math.max(0L, interestRate);
+
+        setLastInterest(pid, safeInterest, safeInterestRate);
+        return safeInterest;
     }
 
     private void setLastInterest(long pid, long interest, long interestRate) {
