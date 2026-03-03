@@ -91,7 +91,8 @@ public class GameEngine {
         if (add > 0)
             gameState.getBudgetManager().addBudget(pid, add);
 
-        applyInterest(pid);
+        long interest = applyInterest(pid);
+        setLastInterest(pid, interest);
         enforceMaxBudget(pid);
     }
 
@@ -380,7 +381,7 @@ public class GameEngine {
     // HELPERS
     // =====================================================
 
-    private void applyInterest(long pid) {
+    private long applyInterest(long pid) {
 
         long budget = gameState.getBudgetManager().getBudget(pid);
         if (budget < 1 || config.interestPct() <= 0) {
