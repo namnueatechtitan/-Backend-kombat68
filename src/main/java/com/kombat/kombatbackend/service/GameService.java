@@ -25,6 +25,7 @@ public class GameService {
     private GameState gameState;
     private MockGameState mockGameState;
     private GameEngine engine;
+    private final GameReadService readService = new GameReadService();
 
     private GamePhase phase = GamePhase.NOT_CONFIGURED;
 
