@@ -322,57 +322,39 @@ public class GameService {
         this.mockGameState = null;
     }
     public List<SpawnableHexDto> getSpawnableHexes() {
-        return readService.getSpawnableHexes(engine);
+        if (engine == null) {
+            return List.of();
+        }
+        return engine.getSpawnableHexes();
     }
+
     public TurnPhase getTurnPhase() {
-        return readService.getTurnPhase(gameState);
+        if (gameState == null) return null;
+        return gameState.getPhase();
     }
 
     public List<SpawnableHexDto> getBuyableHexes() {
-        return readService.getBuyableHexes(engine, phase, getCurrentPlayer());
-    }
-
-    public long getSpawnsLeft() {
-        return readService.getSpawnsLeft(engine, phase, getCurrentPlayer());
-    }
-
-    public List<String> getActionLogs() {
-        return readService.getActionLogs(engine, phase);
-    }
-
-    public Map<Long, PlayerEconomyDto> getPlayerEconomy() {
-        return readService.getPlayerEconomy(engine, gameState, phase, P1, P2);
-    }
-
-    public List<SpawnableHexDto> getBuyableHexes() {
-
         if (engine == null || phase != GamePhase.PLAYING) {
             return List.of();
         }
-
         return engine.getBuyableHexes(getCurrentPlayer());
     }
 
     public long getSpawnsLeft() {
-
         if (engine == null || phase != GamePhase.PLAYING) {
             return 0L;
         }
-
         return engine.getSpawnsLeft(getCurrentPlayer());
     }
 
     public List<String> getActionLogs() {
-
         if (engine == null || (phase != GamePhase.PLAYING && phase != GamePhase.FINISHED)) {
             return List.of();
         }
-
         return engine.getActionLogs();
     }
 
     public Map<Long, PlayerEconomyDto> getPlayerEconomy() {
-
         if (engine == null || gameState == null || (phase != GamePhase.PLAYING && phase != GamePhase.FINISHED)) {
             return Map.of();
         }
@@ -390,7 +372,6 @@ public class GameService {
                 engine.getSpawnsLeft(P2),
                 engine.getLastInterest(P2)
         ));
-
         return result;
     }
 }
