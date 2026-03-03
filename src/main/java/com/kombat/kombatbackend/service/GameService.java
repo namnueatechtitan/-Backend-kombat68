@@ -1,5 +1,6 @@
 package com.kombat.kombatbackend.service;
 import com.kombat.kombatbackend.dto.SpawnableHexDto;
+import com.kombat.kombatbackend.dto.PlayerEconomyDto;
 import java.util.List;
 import com.kombat.kombatbackend.dto.GameInitRequest;
 import com.kombat.kombatbackend.dto.MinionSetup;
@@ -357,5 +358,28 @@ public class GameService {
         }
 
         return engine.getActionLogs();
+    }
+
+    public Map<Long, PlayerEconomyDto> getPlayerEconomy() {
+
+        if (engine == null || gameState == null || (phase != GamePhase.PLAYING && phase != GamePhase.FINISHED)) {
+            return Map.of();
+        }
+
+        Map<Long, PlayerEconomyDto> result = new LinkedHashMap<>();
+        result.put(P1, new PlayerEconomyDto(
+                P1,
+                gameState.getBudgetManager().getBudget(P1),
+                engine.getSpawnsLeft(P1),
+                engine.getLastInterest(P1)
+        ));
+        result.put(P2, new PlayerEconomyDto(
+                P2,
+                gameState.getBudgetManager().getBudget(P2),
+                engine.getSpawnsLeft(P2),
+                engine.getLastInterest(P2)
+        ));
+
+        return result;
     }
 }

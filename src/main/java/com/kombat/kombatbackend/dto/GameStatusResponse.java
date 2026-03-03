@@ -14,6 +14,7 @@ public class GameStatusResponse {
     private List<SpawnableHexDto> spawnableHexes;
     private List<SpawnableHexDto> buyableHexes;
     private List<String> actionLogs;
+    private java.util.Map<Long, PlayerEconomyDto> playerEconomy;
 
     public GameStatusResponse() {
     }
@@ -60,6 +61,10 @@ public class GameStatusResponse {
         return actionLogs;
     }
 
+    public java.util.Map<Long, PlayerEconomyDto> getPlayerEconomy() {
+        return playerEconomy;
+    }
+
     // ==============================
     // SETTERS
     // ==============================
@@ -90,5 +95,9 @@ public class GameStatusResponse {
 
     public void setActionLogs(List<String> actionLogs) {
         this.actionLogs = actionLogs;
+    }
+
+    public void setPlayerEconomy(java.util.Map<Long, PlayerEconomyDto> playerEconomy) {
+        this.playerEconomy = playerEconomy;
     }
 }

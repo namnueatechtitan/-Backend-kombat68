@@ -152,6 +152,35 @@ class GameServiceFreeSpawnFlowTest {
         assertTrue(service.getActionLogs().stream().anyMatch(log -> log.contains("P1 SHOOT UP x=1 NO_TARGET")));
     }
 
+    @Test
+    void playerEconomyContainsBothPlayersWithInterestAfterTurnProgress() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest("done;", "done;"));
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        service.endTurn();
+        service.endTurn();
+        service.endTurn();
+
+        var economy = service.getPlayerEconomy();
+        assertTrue(economy.containsKey(GameService.P1));
+        assertTrue(economy.containsKey(GameService.P2));
+
+        var p1 = economy.get(GameService.P1);
+        var p2 = economy.get(GameService.P2);
+
+        assertNotNull(p1);
+        assertNotNull(p2);
+
+        assertEquals(service.getGameState().getBudgetManager().getBudget(GameService.P1), p1.getBudget());
+        assertEquals(service.getGameState().getBudgetManager().getBudget(GameService.P2), p2.getBudget());
+        assertEquals(service.getSpawnsLeft(), economy.get(service.getCurrentPlayer()).getSpawnsLeft());
+        assertTrue(p1.getLastInterest() >= 0);
+        assertTrue(p2.getLastInterest() >= 0);
+    }
+
     private static GameInitRequest buildRequest() {
         return buildRequest("done;", "done;");
     }

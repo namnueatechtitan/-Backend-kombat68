@@ -281,6 +281,10 @@ public class GameApiController {
                 gameService.getActionLogs()
         );
 
+        response.setPlayerEconomy(
+                gameService.getPlayerEconomy()
+        );
+
         return ResponseEntity.ok(response);
     }
     private GameStateDto convert(GameState state) {
