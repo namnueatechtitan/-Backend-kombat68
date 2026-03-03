@@ -364,13 +364,15 @@ public class GameService {
                 P1,
                 gameState.getBudgetManager().getBudget(P1),
                 engine.getSpawnsLeft(P1),
-                engine.getLastInterest(P1)
+                engine.getLastInterest(P1),
+                engine.getLastInterestRate(P1)
         ));
         result.put(P2, new PlayerEconomyDto(
                 P2,
                 gameState.getBudgetManager().getBudget(P2),
                 engine.getSpawnsLeft(P2),
-                engine.getLastInterest(P2)
+                engine.getLastInterest(P2),
+                engine.getLastInterestRate(P2)
         ));
         return result;
     }

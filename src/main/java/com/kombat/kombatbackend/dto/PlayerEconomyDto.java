@@ -6,15 +6,21 @@ public class PlayerEconomyDto {
     private long budget;
     private long spawnsLeft;
     private long lastInterest;
+    private long lastInterestRate;
 
     public PlayerEconomyDto() {
     }
 
-    public PlayerEconomyDto(long playerId, long budget, long spawnsLeft, long lastInterest) {
+    public PlayerEconomyDto(long playerId,
+                            long budget,
+                            long spawnsLeft,
+                            long lastInterest,
+                            long lastInterestRate) {
         this.playerId = playerId;
         this.budget = budget;
         this.spawnsLeft = spawnsLeft;
         this.lastInterest = lastInterest;
+        this.lastInterestRate = lastInterestRate;
     }
 
     public long getPlayerId() {
@@ -47,5 +53,13 @@ public class PlayerEconomyDto {
 
     public void setLastInterest(long lastInterest) {
         this.lastInterest = lastInterest;
+    }
+
+    public long getLastInterestRate() {
+        return lastInterestRate;
+    }
+
+    public void setLastInterestRate(long lastInterestRate) {
+        this.lastInterestRate = lastInterestRate;
     }
 }

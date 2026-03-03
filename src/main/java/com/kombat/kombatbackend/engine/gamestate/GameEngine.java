@@ -23,6 +23,8 @@ public class GameEngine {
     private long turnsPlayedP2 = 0;
     private long lastInterestP1 = 0;
     private long lastInterestP2 = 0;
+    private long lastInterestRateP1 = 0;
+    private long lastInterestRateP2 = 0;
 
     private long spawnsUsedP1 = 0;
     private long spawnsUsedP2 = 0;
@@ -382,7 +384,10 @@ public class GameEngine {
     private long applyInterest(long pid) {
 
         long budget = gameState.getBudgetManager().getBudget(pid);
-        if (budget < 1 || config.interestPct() <= 0) return 0L;
+        if (budget < 1 || config.interestPct() <= 0) {
+            setLastInterest(pid, 0L, 0L);
+            return;
+        }
 
         long turns = (pid == P1) ? turnsPlayedP1 : turnsPlayedP2;
         long t = Math.max(1, turns + 1);
@@ -391,8 +396,10 @@ public class GameEngine {
                 * Math.log10(budget)
                 * Math.log(t);
 
-        if (raw <= 0 || Double.isNaN(raw) || Double.isInfinite(raw))
-            return 0L;
+        if (raw <= 0 || Double.isNaN(raw) || Double.isInfinite(raw)) {
+            setLastInterest(pid, 0L, 0L);
+            return;
+        }
 
         long interestRate = (long) raw;
         long interest = (long) (budget * interestRate / 100.0);
@@ -401,14 +408,20 @@ public class GameEngine {
             gameState.getBudgetManager().addBudget(pid, interest);
         }
 
-        return Math.max(0L, interest);
+        setLastInterest(
+                pid,
+                Math.max(0L, interest),
+                Math.max(0L, interestRate)
+        );
     }
 
-    private void setLastInterest(long pid, long interest) {
+    private void setLastInterest(long pid, long interest, long interestRate) {
         if (pid == P2) {
             lastInterestP2 = interest;
+            lastInterestRateP2 = interestRate;
         } else {
             lastInterestP1 = interest;
+            lastInterestRateP1 = interestRate;
         }
     }
 
@@ -509,6 +522,10 @@ public class GameEngine {
 
     public long getLastInterest(long playerId) {
         return (playerId == P2) ? lastInterestP2 : lastInterestP1;
+    }
+
+    public long getLastInterestRate(long playerId) {
+        return (playerId == P2) ? lastInterestRateP2 : lastInterestRateP1;
     }
 
     private void incrementSpawns(long pid) {

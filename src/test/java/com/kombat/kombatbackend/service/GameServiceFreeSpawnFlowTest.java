@@ -179,6 +179,8 @@ class GameServiceFreeSpawnFlowTest {
         assertEquals(service.getSpawnsLeft(), economy.get(service.getCurrentPlayer()).getSpawnsLeft());
         assertTrue(p1.getLastInterest() >= 0);
         assertTrue(p2.getLastInterest() >= 0);
+        assertTrue(p1.getLastInterestRate() >= 0);
+        assertTrue(p2.getLastInterestRate() >= 0);
     }
 
     private static GameInitRequest buildRequest() {
