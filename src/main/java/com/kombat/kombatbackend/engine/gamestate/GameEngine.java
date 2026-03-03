@@ -267,44 +267,135 @@ public class GameEngine {
 
             @Override
             public long opponent() {
-                Minion m = mockGameState.getCurrentMinion();
-                if (m == null) return 0;
-                return (m.getOwnerId() == P1) ? P2 : P1;
+                return closestInAnyDirection(false);
             }
 
             @Override
             public long ally() {
-                Minion m = mockGameState.getCurrentMinion();
-                if (m == null) return 0;
-                return m.getOwnerId();
+                return closestInAnyDirection(true);
             }
 
             @Override
             public long nearby(Direction dir) {
-
                 Minion m = mockGameState.getCurrentMinion();
                 if (m == null) return 0;
 
-                int nx = m.getPosition().getX();
-                int ny = m.getPosition().getY();
+                Minion target = firstMinionInDirection(m, dir);
+                if (target == null) return 0;
 
-                switch (dir) {
-                    case UP -> nx -= 1;
-                    case UPRIGHT -> { nx -= 1; ny += 1; }
-                    case DOWNRIGHT -> ny += 1;
-                    case DOWN -> nx += 1;
-                    case DOWNLEFT -> { nx += 1; ny -= 1; }
-                    case UPLEFT -> ny -= 1;
+                int dist = firstMinionDistanceInDirection(m, dir);
+                if (dist <= 0) return 0;
+
+                int hpDigits = digits(target.getHp());
+                int defDigits = digits(target.getDefenseFactor());
+
+                long enc = 100L * hpDigits + 10L * defDigits + (long) Math.max(1, dist);
+                if (target.getOwnerId() == m.getOwnerId()) {
+                    enc = -enc;
+                }
+                return enc;
+            }
+
+            private long closestInAnyDirection(boolean wantAlly) {
+                Minion me = mockGameState.getCurrentMinion();
+                if (me == null) return 0;
+
+                long myPid = me.getOwnerId();
+                long best = 0;
+                int bestDist = Integer.MAX_VALUE;
+                int bestDirNum = Integer.MAX_VALUE;
+
+                for (Direction d : Direction.values()) {
+                    Minion target = firstMinionInDirection(me, d);
+                    if (target == null) continue;
+
+                    boolean isAlly = target.getOwnerId() == myPid;
+                    if (wantAlly != isAlly) continue;
+
+                    int dist = firstMinionDistanceInDirection(me, d);
+                    if (dist <= 0) continue;
+
+                    int dirNum = d.dirNum();
+                    if (dist < bestDist || (dist == bestDist && dirNum < bestDirNum)) {
+                        bestDist = dist;
+                        bestDirNum = dirNum;
+                        best = (long) dist * 10L + dirNum;
+                    }
                 }
 
-                if (!gameState.getBoard().isInsideBoard(nx, ny))
-                    return 0;
+                return best;
+            }
 
-                Hex h = gameState.getBoard().getHex(nx, ny);
-                if (!h.isOccupied())
-                    return 0;
+            private Minion firstMinionInDirection(Minion me, Direction dir) {
+                Hex from = me.getPosition();
+                int x = from.getX(), y = from.getY();
 
-                return h.getOccupant().getOwnerId();
+                for (int step = 1; step <= 7; step++) {
+                    int nx = x, ny = y;
+
+                    switch (dir) {
+                        case UP -> nx = x - step;
+                        case DOWN -> nx = x + step;
+                        case UPLEFT -> ny = y - step;
+                        case UPRIGHT -> ny = y + step;
+                        case DOWNLEFT -> {
+                            nx = x + step;
+                            ny = y - step;
+                        }
+                        case DOWNRIGHT -> {
+                            nx = x + step;
+                            ny = y + step;
+                        }
+                    }
+
+                    if (!gameState.getBoard().isInsideBoard(nx, ny)) break;
+                    Hex h = gameState.getBoard().getHex(nx, ny);
+                    if (h.isOccupied()) return h.getOccupant();
+                }
+
+                return null;
+            }
+
+            private int firstMinionDistanceInDirection(Minion me, Direction dir) {
+                Hex from = me.getPosition();
+                int x = from.getX(), y = from.getY();
+
+                for (int step = 1; step <= 7; step++) {
+                    int nx = x, ny = y;
+
+                    switch (dir) {
+                        case UP -> nx = x - step;
+                        case DOWN -> nx = x + step;
+                        case UPLEFT -> ny = y - step;
+                        case UPRIGHT -> ny = y + step;
+                        case DOWNLEFT -> {
+                            nx = x + step;
+                            ny = y - step;
+                        }
+                        case DOWNRIGHT -> {
+                            nx = x + step;
+                            ny = y + step;
+                        }
+                    }
+
+                    if (!gameState.getBoard().isInsideBoard(nx, ny)) break;
+                    Hex h = gameState.getBoard().getHex(nx, ny);
+                    if (h.isOccupied()) return step;
+                }
+
+                return -1;
+            }
+
+            private int digits(int v) {
+                int n = Math.abs(v);
+                if (n == 0) return 1;
+
+                int d = 0;
+                while (n > 0) {
+                    d++;
+                    n /= 10;
+                }
+                return d;
             }
         };
 
