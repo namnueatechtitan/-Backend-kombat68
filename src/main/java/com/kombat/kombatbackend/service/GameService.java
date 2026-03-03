@@ -1,5 +1,6 @@
 package com.kombat.kombatbackend.service;
 import com.kombat.kombatbackend.dto.SpawnableHexDto;
+import com.kombat.kombatbackend.dto.PlayerEconomyDto;
 import java.util.List;
 import com.kombat.kombatbackend.dto.GameInitRequest;
 import com.kombat.kombatbackend.dto.MinionSetup;
@@ -24,6 +25,7 @@ public class GameService {
     private GameState gameState;
     private MockGameState mockGameState;
     private GameEngine engine;
+    private final GameReadService readService = new GameReadService();
 
     private GamePhase phase = GamePhase.NOT_CONFIGURED;
 
@@ -186,6 +188,7 @@ public class GameService {
         );
 
         MockGameState mg = new MockGameState(gs);
+        mg.setTerritoryRule((pid, x, y) -> engineCanEnterTerritory(pid, x, y));
 
         for (MinionKindDef def : getSelectedMinions(P1)) {
             gs.registerKind(P1, def);
@@ -201,6 +204,20 @@ public class GameService {
         this.engine = new GameEngine(config, gs, mg);
 
         phase = GamePhase.PLAYING;
+    }
+
+    private boolean engineCanEnterTerritory(long pid, int x, int y) {
+
+        if (gameState == null || !gameState.getBoard().isInsideBoard(x, y)) {
+            return false;
+        }
+
+        if (engine == null) {
+            return true;
+        }
+
+        return engine.getSpawnableHexes().stream()
+                .anyMatch(hex -> hex.getRow() == x && hex.getCol() == y && hex.getOwnerId() == pid);
     }
 
     // ================= GAMEPLAY =================
@@ -305,15 +322,25 @@ public class GameService {
         this.mockGameState = null;
     }
     public List<SpawnableHexDto> getSpawnableHexes() {
-
-        if (engine == null) {
-            return List.of();
-        }
-
-        return engine.getSpawnableHexes();
+        return readService.getSpawnableHexes(engine);
     }
     public TurnPhase getTurnPhase() {
-        if (gameState == null) return null;
-        return gameState.getPhase();
+        return readService.getTurnPhase(gameState);
+    }
+
+    public List<SpawnableHexDto> getBuyableHexes() {
+        return readService.getBuyableHexes(engine, phase, getCurrentPlayer());
+    }
+
+    public long getSpawnsLeft() {
+        return readService.getSpawnsLeft(engine, phase, getCurrentPlayer());
+    }
+
+    public List<String> getActionLogs() {
+        return readService.getActionLogs(engine, phase);
+    }
+
+    public Map<Long, PlayerEconomyDto> getPlayerEconomy() {
+        return readService.getPlayerEconomy(engine, gameState, phase, P1, P2);
     }
 }
