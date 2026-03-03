@@ -1,0 +1,209 @@
+package com.kombat.kombatbackend.service;
+
+import com.kombat.kombatbackend.dto.GameInitRequest;
+import com.kombat.kombatbackend.dto.MinionSetup;
+import com.kombat.kombatbackend.dto.PlayerSetupRequest;
+import com.kombat.kombatbackend.engine.gamestate.CharacterType;
+import com.kombat.kombatbackend.engine.gamestate.GameConfig;
+import com.kombat.kombatbackend.engine.gamestate.GameMode;
+import com.kombat.kombatbackend.engine.gamestate.TurnPhase;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class GameServiceFreeSpawnFlowTest {
+
+    @Test
+    void afterBothFreeSpawnsGameStartsAtP1Turn1AndNoMoreFreeSpawn() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest());
+
+        assertEquals(TurnPhase.FREE_SPAWN, service.getTurnPhase());
+        assertEquals(GameService.P1, service.getCurrentPlayer());
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertEquals(TurnPhase.FREE_SPAWN, service.getTurnPhase());
+        assertEquals(GameService.P2, service.getCurrentPlayer());
+
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        assertEquals(TurnPhase.PLAYER_ACTION, service.getTurnPhase());
+        assertEquals(GameService.P1, service.getCurrentPlayer());
+        assertEquals(1, service.getGameState().getTurnNumber());
+
+        long initialBudget = service.getConfig().initBudget();
+        long expectedP1BudgetAfterTurnStart = initialBudget + service.getConfig().turnBudget();
+        assertEquals(
+                expectedP1BudgetAfterTurnStart,
+                service.getGameState().getBudgetManager().getBudget(GameService.P1)
+        );
+
+        assertFalse(service.spawn("FIGHTER", 0, 1));
+    }
+
+    @Test
+    void playerCanBuyHexAfterSpawningInSameTurn() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest());
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        assertTrue(service.spawn("FIGHTER", 0, 1));
+
+        assertTrue(service.buyHex(1, 2));
+    }
+
+    @Test
+    void buyableHexesAreExposedForCurrentPlayerInPlayerActionPhase() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest());
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        var buyable = service.getBuyableHexes();
+
+        assertFalse(buyable.isEmpty());
+        assertTrue(
+                buyable.stream().anyMatch(h -> h.getRow() == 1 && h.getCol() == 2 && h.getOwnerId() == GameService.P1)
+        );
+    }
+
+    @Test
+    void spawnsLeftDecreasesAfterSpawnInPlayerActionPhase() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest());
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        assertEquals(2, service.getSpawnsLeft());
+
+        assertTrue(service.spawn("FIGHTER", 0, 1));
+
+        assertEquals(1, service.getSpawnsLeft());
+    }
+
+    @Test
+    void actionLogsAreAvailableAfterEndTurnExecutesStrategies() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest());
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        service.endTurn();
+
+        var actionLogs = service.getActionLogs();
+        assertFalse(actionLogs.isEmpty());
+        assertTrue(actionLogs.stream().anyMatch(log -> log.contains("DONE")));
+    }
+
+    @Test
+    void moveStrategyConsumesExactlyOneBudgetInExecution() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest("move down; done;", "done;"));
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        long budgetBefore = service.getGameState().getBudgetManager().getBudget(GameService.P1);
+
+        service.endTurn();
+
+        long budgetAfter = service.getGameState().getBudgetManager().getBudget(GameService.P1);
+        assertEquals(budgetBefore - 1, budgetAfter);
+        assertTrue(service.getActionLogs().stream().anyMatch(log -> log.contains("MOVE DOWN")));
+    }
+
+    @Test
+    void moveNoOpStillConsumesOneBudgetAndLogsPlayerPrefix() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest("move up; done;", "done;"));
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        long budgetBefore = service.getGameState().getBudgetManager().getBudget(GameService.P1);
+        service.endTurn();
+        long budgetAfter = service.getGameState().getBudgetManager().getBudget(GameService.P1);
+
+        assertEquals(budgetBefore - 1, budgetAfter);
+        assertTrue(service.getActionLogs().stream().anyMatch(log -> log.contains("TURN 1 EXECUTE P1")));
+        assertTrue(service.getActionLogs().stream().anyMatch(log -> log.contains("P1 MOVE UP NO-OP")));
+    }
+
+    @Test
+    void shootNoTargetConsumesTwoBudgetAndLogsPlayerPrefix() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest("shoot up 1; done;", "done;"));
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        long budgetBefore = service.getGameState().getBudgetManager().getBudget(GameService.P1);
+        service.endTurn();
+        long budgetAfter = service.getGameState().getBudgetManager().getBudget(GameService.P1);
+
+        assertEquals(budgetBefore - 2, budgetAfter);
+        assertTrue(service.getActionLogs().stream().anyMatch(log -> log.contains("P1 SHOOT UP x=1 NO_TARGET")));
+    }
+
+    @Test
+    void playerEconomyContainsBothPlayersWithInterestAfterTurnProgress() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest("done;", "done;"));
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        service.endTurn();
+        service.endTurn();
+        service.endTurn();
+
+        var economy = service.getPlayerEconomy();
+        assertTrue(economy.containsKey(GameService.P1));
+        assertTrue(economy.containsKey(GameService.P2));
+
+        var p1 = economy.get(GameService.P1);
+        var p2 = economy.get(GameService.P2);
+
+        assertNotNull(p1);
+        assertNotNull(p2);
+
+        assertEquals(service.getGameState().getBudgetManager().getBudget(GameService.P1), p1.getBudget());
+        assertEquals(service.getGameState().getBudgetManager().getBudget(GameService.P2), p2.getBudget());
+        assertEquals(service.getSpawnsLeft(), economy.get(service.getCurrentPlayer()).getSpawnsLeft());
+        assertTrue(p1.getLastInterest() >= 0);
+        assertTrue(p2.getLastInterest() >= 0);
+    }
+
+    private static GameInitRequest buildRequest() {
+        return buildRequest("done;", "done;");
+    }
+
+    private static GameInitRequest buildRequest(String p1Strategy, String p2Strategy) {
+        GameInitRequest req = new GameInitRequest();
+        req.setConfig(new GameConfig(100, 1000, 1000, 100, 90, 5000, 0, 10, 2));
+        req.setMode(GameMode.DUEL);
+        req.setPlayer1(buildPlayer(p1Strategy));
+        req.setPlayer2(buildPlayer(p2Strategy));
+        return req;
+    }
+
+    private static PlayerSetupRequest buildPlayer(String strategyCode) {
+        PlayerSetupRequest player = new PlayerSetupRequest();
+        player.setCharacter(CharacterType.HUMAN);
+
+        MinionSetup fighter = new MinionSetup();
+        fighter.setType("FIGHTER");
+        fighter.setDefenseFactor(1);
+        fighter.setStrategy(strategyCode);
+
+        player.setMinions(List.of(fighter));
+        return player;
+    }
+}

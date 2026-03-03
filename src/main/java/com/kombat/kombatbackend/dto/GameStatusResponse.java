@@ -12,6 +12,9 @@ public class GameStatusResponse {
     private GameStateDto gameState;
 
     private List<SpawnableHexDto> spawnableHexes;
+    private List<SpawnableHexDto> buyableHexes;
+    private List<String> actionLogs;
+    private java.util.Map<Long, PlayerEconomyDto> playerEconomy;
 
     public GameStatusResponse() {
     }
@@ -50,6 +53,18 @@ public class GameStatusResponse {
         return spawnableHexes;
     }
 
+    public List<SpawnableHexDto> getBuyableHexes() {
+        return buyableHexes;
+    }
+
+    public List<String> getActionLogs() {
+        return actionLogs;
+    }
+
+    public java.util.Map<Long, PlayerEconomyDto> getPlayerEconomy() {
+        return playerEconomy;
+    }
+
     // ==============================
     // SETTERS
     // ==============================
@@ -72,5 +87,17 @@ public class GameStatusResponse {
 
     public void setSpawnableHexes(List<SpawnableHexDto> spawnableHexes) {
         this.spawnableHexes = spawnableHexes;
+    }
+
+    public void setBuyableHexes(List<SpawnableHexDto> buyableHexes) {
+        this.buyableHexes = buyableHexes;
+    }
+
+    public void setActionLogs(List<String> actionLogs) {
+        this.actionLogs = actionLogs;
+    }
+
+    public void setPlayerEconomy(java.util.Map<Long, PlayerEconomyDto> playerEconomy) {
+        this.playerEconomy = playerEconomy;
     }
 }

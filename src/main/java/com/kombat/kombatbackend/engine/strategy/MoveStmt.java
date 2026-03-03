@@ -28,13 +28,9 @@ public class MoveStmt implements Stmt {
         }
 
         long before = game.getBudget(pid);
-
-        // spec: ลดงบ 1 “ทุกครั้งที่สั่ง move” ไม่ว่าขยับได้ไหม
-        game.decreaseBudget(pid, 1);
-
         boolean moved = game.moveCurrentMinion(dir);
 
-        ctx.log("MOVE " + dir + " " + (moved ? "OK" : "NO-OP")
+        ctx.log("P" + pid + " MOVE " + dir + " " + (moved ? "OK" : "NO-OP")
                 + " Budget:" + before + "->" + game.getBudget(pid));
     }
 
