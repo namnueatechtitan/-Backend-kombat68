@@ -1,5 +1,6 @@
 package com.kombat.kombatbackend.service;
 import com.kombat.kombatbackend.dto.SpawnableHexDto;
+import com.kombat.kombatbackend.dto.PlayerEconomyDto;
 import java.util.List;
 import com.kombat.kombatbackend.dto.GameInitRequest;
 import com.kombat.kombatbackend.dto.MinionSetup;
@@ -186,6 +187,7 @@ public class GameService {
         );
 
         MockGameState mg = new MockGameState(gs);
+        mg.setTerritoryRule((pid, x, y) -> engineCanEnterTerritory(pid, x, y));
 
         for (MinionKindDef def : getSelectedMinions(P1)) {
             gs.registerKind(P1, def);
@@ -201,6 +203,20 @@ public class GameService {
         this.engine = new GameEngine(config, gs, mg);
 
         phase = GamePhase.PLAYING;
+    }
+
+    private boolean engineCanEnterTerritory(long pid, int x, int y) {
+
+        if (gameState == null || !gameState.getBoard().isInsideBoard(x, y)) {
+            return false;
+        }
+
+        if (engine == null) {
+            return true;
+        }
+
+        return engine.getSpawnableHexes().stream()
+                .anyMatch(hex -> hex.getRow() == x && hex.getCol() == y && hex.getOwnerId() == pid);
     }
 
     // ================= GAMEPLAY =================
@@ -305,15 +321,56 @@ public class GameService {
         this.mockGameState = null;
     }
     public List<SpawnableHexDto> getSpawnableHexes() {
-
         if (engine == null) {
             return List.of();
         }
-
         return engine.getSpawnableHexes();
     }
+
     public TurnPhase getTurnPhase() {
         if (gameState == null) return null;
         return gameState.getPhase();
+    }
+
+    public List<SpawnableHexDto> getBuyableHexes() {
+        if (engine == null || phase != GamePhase.PLAYING) {
+            return List.of();
+        }
+        return engine.getBuyableHexes(getCurrentPlayer());
+    }
+
+    public long getSpawnsLeft() {
+        if (engine == null || phase != GamePhase.PLAYING) {
+            return 0L;
+        }
+        return engine.getSpawnsLeft(getCurrentPlayer());
+    }
+
+    public List<String> getActionLogs() {
+        if (engine == null || (phase != GamePhase.PLAYING && phase != GamePhase.FINISHED)) {
+            return List.of();
+        }
+        return engine.getActionLogs();
+    }
+
+    public Map<Long, PlayerEconomyDto> getPlayerEconomy() {
+        if (engine == null || gameState == null || (phase != GamePhase.PLAYING && phase != GamePhase.FINISHED)) {
+            return Map.of();
+        }
+
+        Map<Long, PlayerEconomyDto> result = new LinkedHashMap<>();
+        result.put(P1, new PlayerEconomyDto(
+                P1,
+                gameState.getBudgetManager().getBudget(P1),
+                engine.getSpawnsLeft(P1),
+                engine.getLastInterest(P1)
+        ));
+        result.put(P2, new PlayerEconomyDto(
+                P2,
+                gameState.getBudgetManager().getBudget(P2),
+                engine.getSpawnsLeft(P2),
+                engine.getLastInterest(P2)
+        ));
+        return result;
     }
 }
