@@ -1,0 +1,495 @@
+############################################################
+################### BASE FLOW (FIGHTER) ###################
+############################################################
+
+### RESET
+POST http://localhost:8080/api/game/reset
+
+###
+
+### CONFIG
+POST http://localhost:8080/api/game/config
+Content-Type: application/json
+
+{
+  "spawnCost": 100,
+  "hexPurchaseCost": 1000,
+  "initBudget": 10000,
+  "initHp": 100,
+  "turnBudget": 90,
+  "maxBudget": 23456,
+  "interestPct": 5,
+  "maxTurns": 20,
+  "maxSpawns": 5
+}
+
+###
+
+### MODE
+POST http://localhost:8080/api/game/mode
+Content-Type: application/json
+
+{ "mode": "DUEL" }
+
+###
+
+### CHARACTER P1
+POST http://localhost:8080/api/game/character
+Content-Type: application/json
+
+{ "playerId": 1, "character": "HUMAN" }
+
+###
+
+### CHARACTER P2
+POST http://localhost:8080/api/game/character
+Content-Type: application/json
+
+{ "playerId": 2, "character": "DEMON" }
+
+###
+
+### SETUP P1
+POST http://localhost:8080/api/game/setup/full/1
+Content-Type: application/json
+
+[
+  { "type": "FIGHTER", "defenseFactor": 1, "strategy": "move up; done;" }
+]
+
+###
+
+### SETUP P2
+POST http://localhost:8080/api/game/setup/full/2
+Content-Type: application/json
+
+[
+  { "type": "FIGHTER", "defenseFactor": 1, "strategy": "move down; done;" }
+]
+
+###
+
+### START GAME
+POST http://localhost:8080/api/game/start
+
+###
+
+### CHECK PHASE (FREE_SPAWN)
+GET http://localhost:8080/api/game/phase
+
+###
+
+### P1 FREE SPAWN
+POST http://localhost:8080/api/game/spawn
+Content-Type: application/json
+
+{ "type": "FIGHTER", "row": 0, "col": 0 }
+
+###
+
+### CHECK CURRENT PLAYER (2)
+GET http://localhost:8080/api/game/current-player
+
+###
+
+### P2 FREE SPAWN
+POST http://localhost:8080/api/game/spawn
+Content-Type: application/json
+
+{ "type": "FIGHTER", "row": 7, "col": 7 }
+
+###
+
+### CHECK PHASE (BUY_HEX)
+GET http://localhost:8080/api/game/phase
+
+###
+
+### BUY HEX
+POST http://localhost:8080/api/game/buy-hex
+Content-Type: application/json
+
+{ "row": 2, "col": 1 }
+
+###
+
+### SPAWN NORMAL
+POST http://localhost:8080/api/game/spawn
+Content-Type: application/json
+
+{ "type": "FIGHTER", "row": 0, "col": 1 }
+
+###
+
+### END TURN
+POST http://localhost:8080/api/game/end-turn
+
+###
+
+############################################################
+################### REGRESSION TEST ########################
+############################################################
+
+
+################ ASSASSIN ################
+
+### RESET
+POST http://localhost:8080/api/game/reset
+
+###
+
+### CONFIG
+POST http://localhost:8080/api/game/config
+Content-Type: application/json
+
+{
+  "spawnCost": 100,
+  "hexPurchaseCost": 1000,
+  "initBudget": 10000,
+  "initHp": 100,
+  "turnBudget": 90,
+  "maxBudget": 23456,
+  "interestPct": 5,
+  "maxTurns": 20,
+  "maxSpawns": 5
+}
+
+###
+
+### MODE
+POST http://localhost:8080/api/game/mode
+Content-Type: application/json
+
+{ "mode": "DUEL" }
+
+###
+
+### CHARACTER P1
+POST http://localhost:8080/api/game/character
+Content-Type: application/json
+
+{ "playerId": 1, "character": "HUMAN" }
+
+###
+
+### CHARACTER P2
+POST http://localhost:8080/api/game/character
+Content-Type: application/json
+
+{ "playerId": 2, "character": "DEMON" }
+
+###
+
+### SETUP P1 ASSASSIN
+POST http://localhost:8080/api/game/setup/full/1
+Content-Type: application/json
+
+[
+  { "type": "ASSASSIN", "defenseFactor": 1, "strategy": "done;" }
+]
+
+###
+
+### SETUP P2 ASSASSIN
+POST http://localhost:8080/api/game/setup/full/2
+Content-Type: application/json
+
+[
+  { "type": "ASSASSIN", "defenseFactor": 1, "strategy": "done;" }
+]
+
+###
+
+### START
+POST http://localhost:8080/api/game/start
+
+###
+
+### P1 FREE SPAWN ASSASSIN
+POST http://localhost:8080/api/game/spawn
+Content-Type: application/json
+
+{ "type": "ASSASSIN", "row": 0, "col": 0 }
+
+###
+
+### P2 FREE SPAWN ASSASSIN
+POST http://localhost:8080/api/game/spawn
+Content-Type: application/json
+
+{ "type": "ASSASSIN", "row": 7, "col": 7 }
+
+###
+
+
+################ DPS ################
+
+### RESET
+POST http://localhost:8080/api/game/reset
+
+###
+
+### CONFIG
+POST http://localhost:8080/api/game/config
+Content-Type: application/json
+
+{
+  "spawnCost": 100,
+  "hexPurchaseCost": 1000,
+  "initBudget": 10000,
+  "initHp": 100,
+  "turnBudget": 90,
+  "maxBudget": 23456,
+  "interestPct": 5,
+  "maxTurns": 20,
+  "maxSpawns": 5
+}
+
+###
+
+### MODE
+POST http://localhost:8080/api/game/mode
+Content-Type: application/json
+
+{ "mode": "DUEL" }
+
+###
+
+### CHARACTER P1
+POST http://localhost:8080/api/game/character
+Content-Type: application/json
+
+{ "playerId": 1, "character": "HUMAN" }
+
+###
+
+### CHARACTER P2
+POST http://localhost:8080/api/game/character
+Content-Type: application/json
+
+{ "playerId": 2, "character": "DEMON" }
+
+###
+
+### SETUP P1 DPS
+POST http://localhost:8080/api/game/setup/full/1
+Content-Type: application/json
+
+[
+  { "type": "DPS", "defenseFactor": 1, "strategy": "done;" }
+]
+
+###
+
+### SETUP P2 DPS
+POST http://localhost:8080/api/game/setup/full/2
+Content-Type: application/json
+
+[
+  { "type": "DPS", "defenseFactor": 1, "strategy": "done;" }
+]
+
+###
+
+### START
+POST http://localhost:8080/api/game/start
+
+###
+
+### P1 FREE SPAWN DPS
+POST http://localhost:8080/api/game/spawn
+Content-Type: application/json
+
+{ "type": "DPS", "row": 0, "col": 0 }
+
+###
+
+### P2 FREE SPAWN DPS
+POST http://localhost:8080/api/game/spawn
+Content-Type: application/json
+
+{ "type": "DPS", "row": 7, "col": 7 }
+
+###
+
+
+################ TANK ################
+
+### RESET
+POST http://localhost:8080/api/game/reset
+
+###
+
+### CONFIG
+POST http://localhost:8080/api/game/config
+Content-Type: application/json
+
+{
+  "spawnCost": 100,
+  "hexPurchaseCost": 1000,
+  "initBudget": 10000,
+  "initHp": 100,
+  "turnBudget": 90,
+  "maxBudget": 23456,
+  "interestPct": 5,
+  "maxTurns": 20,
+  "maxSpawns": 5
+}
+
+###
+
+### MODE
+POST http://localhost:8080/api/game/mode
+Content-Type: application/json
+
+{ "mode": "DUEL" }
+
+###
+
+### CHARACTER P1
+POST http://localhost:8080/api/game/character
+Content-Type: application/json
+
+{ "playerId": 1, "character": "HUMAN" }
+
+###
+
+### CHARACTER P2
+POST http://localhost:8080/api/game/character
+Content-Type: application/json
+
+{ "playerId": 2, "character": "DEMON" }
+
+###
+
+### SETUP P1 TANK
+POST http://localhost:8080/api/game/setup/full/1
+Content-Type: application/json
+
+[
+  { "type": "TANK", "defenseFactor": 1, "strategy": "done;" }
+]
+
+###
+
+### SETUP P2 TANK
+POST http://localhost:8080/api/game/setup/full/2
+Content-Type: application/json
+
+[
+  { "type": "TANK", "defenseFactor": 1, "strategy": "done;" }
+]
+
+###
+
+### START
+POST http://localhost:8080/api/game/start
+
+###
+
+### P1 FREE SPAWN TANK
+POST http://localhost:8080/api/game/spawn
+Content-Type: application/json
+
+{ "type": "TANK", "row": 0, "col": 0 }
+
+###
+
+### P2 FREE SPAWN TANK
+POST http://localhost:8080/api/game/spawn
+Content-Type: application/json
+
+{ "type": "TANK", "row": 7, "col": 7 }
+
+###
+
+
+################ SUPPORT ################
+
+### RESET
+POST http://localhost:8080/api/game/reset
+
+###
+
+### CONFIG
+POST http://localhost:8080/api/game/config
+Content-Type: application/json
+
+{
+  "spawnCost": 100,
+  "hexPurchaseCost": 1000,
+  "initBudget": 10000,
+  "initHp": 100,
+  "turnBudget": 90,
+  "maxBudget": 23456,
+  "interestPct": 5,
+  "maxTurns": 20,
+  "maxSpawns": 5
+}
+
+###
+
+### MODE
+POST http://localhost:8080/api/game/mode
+Content-Type: application/json
+
+{ "mode": "DUEL" }
+
+###
+
+### CHARACTER P1
+POST http://localhost:8080/api/game/character
+Content-Type: application/json
+
+{ "playerId": 1, "character": "HUMAN" }
+
+###
+
+### CHARACTER P2
+POST http://localhost:8080/api/game/character
+Content-Type: application/json
+
+{ "playerId": 2, "character": "DEMON" }
+
+###
+
+### SETUP P1 SUPPORT
+POST http://localhost:8080/api/game/setup/full/1
+Content-Type: application/json
+
+[
+  { "type": "SUPPORT", "defenseFactor": 1, "strategy": "done;" }
+]
+
+###
+
+### SETUP P2 SUPPORT
+POST http://localhost:8080/api/game/setup/full/2
+Content-Type: application/json
+
+[
+  { "type": "SUPPORT", "defenseFactor": 1, "strategy": "done;" }
+]
+
+###
+
+### START
+POST http://localhost:8080/api/game/start
+
+###
+
+### P1 FREE SPAWN SUPPORT
+POST http://localhost:8080/api/game/spawn
+Content-Type: application/json
+
+{ "type": "SUPPORT", "row": 0, "col": 0 }
+
+###
+
+### P2 FREE SPAWN SUPPORT
+POST http://localhost:8080/api/game/spawn
+Content-Type: application/json
+
+{ "type": "SUPPORT", "row": 7, "col": 7 }
+
+###

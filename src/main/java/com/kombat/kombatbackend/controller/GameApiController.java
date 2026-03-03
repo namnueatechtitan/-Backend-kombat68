@@ -284,6 +284,9 @@ public class GameApiController {
         response.setPlayerEconomy(
                 gameService.getPlayerEconomy()
         );
+        response.setAvailableTypes(
+                gameService.getAvailableTypes()
+        );
 
         return ResponseEntity.ok(response);
     }

@@ -100,4 +100,14 @@ public class GameStatusResponse {
     public void setPlayerEconomy(java.util.Map<Long, PlayerEconomyDto> playerEconomy) {
         this.playerEconomy = playerEconomy;
     }
+
+    private List<String> availableTypes;
+    public List<String> getAvailableTypes() {
+        return availableTypes;
+    }
+
+    public void setAvailableTypes(List<String> availableTypes) {
+        this.availableTypes = availableTypes;
+    }
+
 }

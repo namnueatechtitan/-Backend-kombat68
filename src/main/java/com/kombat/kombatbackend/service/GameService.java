@@ -376,4 +376,18 @@ public class GameService {
         ));
         return result;
     }
+    public List<String> getAvailableTypes() {
+
+        if (gameState == null || engine == null || phase != GamePhase.PLAYING) {
+            return List.of();
+        }
+
+        long current = engine.getCurrentPlayer();
+
+        return gameState.getKinds(current)
+                .keySet()
+                .stream()
+                .map(Enum::name)
+                .toList();
+    }
 }

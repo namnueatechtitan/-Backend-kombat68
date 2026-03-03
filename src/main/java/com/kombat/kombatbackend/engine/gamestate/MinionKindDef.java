@@ -17,8 +17,6 @@ public final class MinionKindDef {
     private final MinionType type;
     private final String kindName;
     private final int defenseFactor;
-
-    // 🔥 เพิ่มอันนี้ไว้เก็บ code ที่ user พิมพ์
     private final String rawStrategy;
 
     // parsed strategy (AST)
