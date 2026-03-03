@@ -25,18 +25,19 @@ public class ShootStmt implements Stmt {
         if (x < 0) x = 0;
 
         long cost = x + 1;
-        long pid = game.currentPlayerId();
-        long before = game.getBudget(pid);
+        MockGameState g = ctx.getGameOr(game);
+        long pid = g.currentPlayerId();
+        long before = g.getBudget(pid);
 
         // spec: ถ้างบไม่พอ -> หยุด evaluation ของ strategy ทันที
         if (before < cost) {
             ctx.log("P" + pid + " SHOOT " + dir + " x=" + x + " STOP(no-budget) Budget:" + before);
             throw new StopEvaluation("no budget for shoot");
         }
-        MockGameState.AttackResult r = game.shoot(dir, x);
+        MockGameState.AttackResult r = g.shoot(dir, x);
 
         ctx.log("P" + pid + " SHOOT " + dir + " x=" + x + " " + r
-                + " Budget:" + before + "->" + game.getBudget(pid));
+                + " Budget:" + before + "->" + g.getBudget(pid));
     }
 
     @Override
