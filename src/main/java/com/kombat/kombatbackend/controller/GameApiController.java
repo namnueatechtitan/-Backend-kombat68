@@ -301,6 +301,7 @@ public class GameApiController {
                 .map(m -> new MinionDto(
                         m.getOwnerId(),
                         m.getType().name(),
+                        m.getHp(),
                         m.getPosition().getX(),
                         m.getPosition().getY()
                 ))
