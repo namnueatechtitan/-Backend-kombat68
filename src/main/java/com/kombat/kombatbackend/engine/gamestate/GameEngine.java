@@ -425,6 +425,9 @@ public class GameEngine {
 
     public boolean isGameOver() {
 
+        if (gameState.getPhase() == TurnPhase.FREE_SPAWN)
+            return false;
+
         if (gameState.getMinions().isEmpty())
             return false;
 
@@ -440,6 +443,9 @@ public class GameEngine {
     }
 
     public String getWinner() {
+
+        if (gameState.getPhase() == TurnPhase.FREE_SPAWN)
+            return "ONGOING";
 
         int c1 = countLiving(P1);
         int c2 = countLiving(P2);

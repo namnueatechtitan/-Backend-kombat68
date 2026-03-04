@@ -16,6 +16,19 @@ import static org.junit.jupiter.api.Assertions.*;
 class GameServiceFreeSpawnFlowTest {
 
     @Test
+    void gameIsNotOverAfterOnlyFirstFreeSpawn() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest());
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+
+        assertFalse(service.isGameOver());
+        assertEquals("ONGOING", service.getWinner());
+        assertEquals(TurnPhase.FREE_SPAWN, service.getTurnPhase());
+        assertEquals(GameService.P2, service.getCurrentPlayer());
+    }
+
+    @Test
     void afterBothFreeSpawnsGameStartsAtP1Turn1AndNoMoreFreeSpawn() {
         GameService service = new GameService();
         service.initFullGame(buildRequest());
