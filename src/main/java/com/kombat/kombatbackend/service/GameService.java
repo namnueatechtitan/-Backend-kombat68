@@ -26,6 +26,7 @@ public class GameService {
     private MockGameState mockGameState;
     private GameEngine engine;
     private final GameReadService readService = new GameReadService();
+    private final Random random = new Random();
 
     private GamePhase phase = GamePhase.NOT_CONFIGURED;
 
@@ -95,6 +96,14 @@ public class GameService {
                           String typeText,
                           int defenseFactor,
                           String strategyCode) {
+        addMinion(playerId, typeText, null, defenseFactor, strategyCode);
+    }
+
+    public void addMinion(long playerId,
+                          String typeText,
+                          String kindName,
+                          int defenseFactor,
+                          String strategyCode) {
 
         if (phase == GamePhase.PLAYING || phase == GamePhase.FINISHED) {
             throw new IllegalStateException("Cannot modify setup after game started");
@@ -135,7 +144,7 @@ public class GameService {
         Strategy strategy = parser.parseStrategy();
 
         MinionKindDef def =
-                new MinionKindDef(type, defenseFactor, strategyCode, strategy);
+                new MinionKindDef(type, kindName, defenseFactor, strategyCode, strategy);
 
         list.add(def);
 
@@ -188,7 +197,6 @@ public class GameService {
         );
 
         MockGameState mg = new MockGameState(gs);
-        mg.setTerritoryRule((pid, x, y) -> engineCanEnterTerritory(pid, x, y));
 
         for (MinionKindDef def : getSelectedMinions(P1)) {
             gs.registerKind(P1, def);
@@ -206,25 +214,21 @@ public class GameService {
         phase = GamePhase.PLAYING;
     }
 
-    private boolean engineCanEnterTerritory(long pid, int x, int y) {
-
-        if (gameState == null || !gameState.getBoard().isInsideBoard(x, y)) {
-            return false;
-        }
-
-        if (engine == null) {
-            return true;
-        }
-
-        return engine.getSpawnableHexes().stream()
-                .anyMatch(hex -> hex.getRow() == x && hex.getCol() == y && hex.getOwnerId() == pid);
-    }
-
     // ================= GAMEPLAY =================
 
     public boolean spawn(String type, int row, int col) {
         requirePhase(GamePhase.PLAYING);
-        return engine.spawn(type, row, col);
+        boolean success = engine.spawn(type, row, col);
+        if (success) {
+            runSolitaireBotIfNeeded();
+        }
+        if (engine.isGameOver()) {
+            phase = GamePhase.FINISHED;
+            if (gameState != null) {
+                gameState.setPhase(TurnPhase.END);
+            }
+        }
+        return success;
     }
 
     public boolean buyHex(int row, int col) {
@@ -243,6 +247,7 @@ public class GameService {
 
         requirePhase(GamePhase.PLAYING);
         engine.executeTurn();
+        runSolitaireBotIfNeeded();
 
         if (engine.isGameOver()) {
             phase = GamePhase.FINISHED;
@@ -399,6 +404,165 @@ public class GameService {
                 .keySet()
                 .stream()
                 .map(Enum::name)
+                .toList();
+    }
+
+    public void progressAutoModeIfNeeded() {
+        if (mode != GameMode.AUTO || engine == null || gameState == null || phase != GamePhase.PLAYING) {
+            return;
+        }
+
+        if (engine.isGameOver()) {
+            phase = GamePhase.FINISHED;
+            gameState.setPhase(TurnPhase.END);
+            return;
+        }
+
+        // One bot step per poll keeps the match visible instead of finishing instantly.
+        TurnPhase turnPhase = gameState.getPhase();
+        long current = engine.getCurrentPlayer();
+
+        if (turnPhase == TurnPhase.FREE_SPAWN) {
+            tryBotFreeSpawn(current);
+        } else if (turnPhase == TurnPhase.PLAYER_ACTION) {
+            tryBotBuyHex(current);
+            tryBotSpawn(current);
+            engine.executeTurn();
+        }
+
+        if (engine.isGameOver()) {
+            phase = GamePhase.FINISHED;
+            gameState.setPhase(TurnPhase.END);
+        }
+    }
+
+    private void runSolitaireBotIfNeeded() {
+        if (mode != GameMode.SOLITAIRE || engine == null || gameState == null) {
+            return;
+        }
+
+        while (phase == GamePhase.PLAYING
+                && !engine.isGameOver()
+                && engine.getCurrentPlayer() == P2) {
+
+            TurnPhase turnPhase = gameState.getPhase();
+
+            if (turnPhase == TurnPhase.FREE_SPAWN) {
+                if (!tryBotFreeSpawn(P2)) {
+                    break;
+                }
+                continue;
+            }
+
+            if (turnPhase == TurnPhase.PLAYER_ACTION) {
+                tryBotBuyHex(P2);
+                tryBotSpawn(P2);
+                engine.executeTurn();
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    private boolean tryBotFreeSpawn(long playerId) {
+        List<String> availableTypes = new ArrayList<>(getTypesForPlayer(playerId));
+        if (availableTypes.isEmpty()) {
+            return false;
+        }
+
+        List<SpawnableHexDto> candidates = new ArrayList<>(getEmptyTerritoryHexes(playerId));
+        if (candidates.isEmpty()) {
+            return false;
+        }
+
+        Collections.shuffle(availableTypes, random);
+        Collections.shuffle(candidates, random);
+
+        for (SpawnableHexDto hex : candidates) {
+            for (String type : availableTypes) {
+                if (engine.spawn(type, hex.getRow(), hex.getCol())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private void tryBotBuyHex(long playerId) {
+        List<SpawnableHexDto> buyable = engine.getBuyableHexes(playerId);
+        if (buyable.isEmpty()) {
+            return;
+        }
+
+        if (random.nextInt(100) >= 60) {
+            return;
+        }
+
+        Collections.shuffle(buyable, random);
+        for (SpawnableHexDto hex : buyable) {
+            if (engine.buyHex(hex.getRow(), hex.getCol())) {
+                return;
+            }
+        }
+    }
+
+    private void tryBotSpawn(long playerId) {
+        if (random.nextInt(100) >= 75) {
+            return;
+        }
+
+        List<String> availableTypes = new ArrayList<>(getTypesForPlayer(playerId));
+        if (availableTypes.isEmpty()) {
+            return;
+        }
+
+        List<SpawnableHexDto> candidates = new ArrayList<>(getEmptyTerritoryHexes(playerId));
+        if (candidates.isEmpty()) {
+            return;
+        }
+
+        Collections.shuffle(availableTypes, random);
+        Collections.shuffle(candidates, random);
+
+        for (SpawnableHexDto hex : candidates) {
+            for (String type : availableTypes) {
+                if (engine.spawn(type, hex.getRow(), hex.getCol())) {
+                    return;
+                }
+            }
+        }
+    }
+
+    private List<String> getTypesForPlayer(long playerId) {
+        if (gameState == null) {
+            return List.of();
+        }
+
+        return gameState.getKinds(playerId)
+                .keySet()
+                .stream()
+                .map(Enum::name)
+                .toList();
+    }
+
+    private List<SpawnableHexDto> getEmptyTerritoryHexes(long playerId) {
+        if (engine == null || gameState == null) {
+            return List.of();
+        }
+
+        Set<String> occupied = new HashSet<>();
+        for (Minion m : gameState.getMinions()) {
+            Hex pos = m.getPosition();
+            if (pos != null) {
+                occupied.add(pos.getX() + "," + pos.getY());
+            }
+        }
+
+        return engine.getSpawnableHexes().stream()
+                .filter(h -> h.getOwnerId() == playerId)
+                .filter(h -> !occupied.contains(h.getRow() + "," + h.getCol()))
                 .toList();
     }
 }

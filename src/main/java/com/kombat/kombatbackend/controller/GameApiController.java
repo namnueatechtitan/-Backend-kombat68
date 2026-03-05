@@ -122,6 +122,7 @@ public class GameApiController {
                 gameService.addMinion(
                         playerId,
                         request.getType(),
+                        request.getName(),
                         request.getDefenseFactor(),
                         request.getStrategy()
                 );
@@ -257,6 +258,8 @@ public class GameApiController {
     @GetMapping("/status")
     public ResponseEntity<?> getStatus() {
 
+        gameService.progressAutoModeIfNeeded();
+
         GameState state = gameService.getGameState();
 
         if (state == null) {
@@ -301,6 +304,7 @@ public class GameApiController {
                 .map(m -> new MinionDto(
                         m.getOwnerId(),
                         m.getType().name(),
+                        m.getKindName(),
                         m.getHp(),
                         m.getPosition().getX(),
                         m.getPosition().getY()

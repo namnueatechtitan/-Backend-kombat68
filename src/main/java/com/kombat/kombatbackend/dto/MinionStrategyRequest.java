@@ -5,6 +5,7 @@ public class MinionStrategyRequest {
     private long playerId;   // 🔥 เพิ่ม
 
     private String type;
+    private String name;
     private String strategy;
     private int defenseFactor;
 
@@ -24,6 +25,10 @@ public class MinionStrategyRequest {
         return strategy;
     }
 
+    public String getName() {
+        return name;
+    }
+
     public int getDefenseFactor() {
         return defenseFactor;
     }
@@ -34,6 +39,10 @@ public class MinionStrategyRequest {
 
     public void setStrategy(String strategy) {
         this.strategy = strategy;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public void setDefenseFactor(int defenseFactor) {

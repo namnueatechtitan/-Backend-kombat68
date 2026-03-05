@@ -2,6 +2,7 @@ package com.kombat.kombatbackend.engine.strategy;
 
 import com.kombat.kombatbackend.engine.evaluator.StopEvaluation;
 import com.kombat.kombatbackend.engine.gamestate.Direction;
+import com.kombat.kombatbackend.engine.gamestate.Minion;
 import com.kombat.kombatbackend.engine.gamestate.MockGameState;
 
 public class ShootStmt implements Stmt {
@@ -28,15 +29,20 @@ public class ShootStmt implements Stmt {
         MockGameState g = ctx.getGameOr(game);
         long pid = g.currentPlayerId();
         long before = g.getBudget(pid);
+        Minion shooter = g.getCurrentMinion();
+        String from = "from=(?,?)";
+        if (shooter != null && shooter.getPosition() != null) {
+            from = "from=(" + shooter.getPosition().getX() + "," + shooter.getPosition().getY() + ")";
+        }
 
         // spec: ถ้างบไม่พอ -> หยุด evaluation ของ strategy ทันที
         if (before < cost) {
-            ctx.log("P" + pid + " SHOOT " + dir + " x=" + x + " STOP(no-budget) Budget:" + before);
+            ctx.log("P" + pid + " SHOOT " + dir + " x=" + x + " " + from + " STOP(no-budget) Budget:" + before);
             throw new StopEvaluation("no budget for shoot");
         }
         MockGameState.AttackResult r = g.shoot(dir, x);
 
-        ctx.log("P" + pid + " SHOOT " + dir + " x=" + x + " " + r
+        ctx.log("P" + pid + " SHOOT " + dir + " x=" + x + " " + from + " " + r
                 + " Budget:" + before + "->" + g.getBudget(pid));
     }
 

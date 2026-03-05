@@ -133,6 +133,27 @@ class GameServiceFreeSpawnFlowTest {
     }
 
     @Test
+    void minionCanMoveOutsideOwnedSpawnableTerritory() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest("move down; done;", "done;"));
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
+        service.endTurn(); // P1: (0,0) -> (1,0) (still initial territory)
+        service.endTurn(); // P2: done
+        service.endTurn(); // P1: (1,0) -> (2,0) (outside initial territory)
+
+        var p1Minion = service.getGameState().getMinions().stream()
+                .filter(m -> m.getOwnerId() == GameService.P1)
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(2, p1Minion.getPosition().getX());
+        assertEquals(0, p1Minion.getPosition().getY());
+    }
+
+    @Test
     void moveNoOpStillConsumesOneBudgetAndLogsPlayerPrefix() {
         GameService service = new GameService();
         service.initFullGame(buildRequest("move up; done;", "done;"));

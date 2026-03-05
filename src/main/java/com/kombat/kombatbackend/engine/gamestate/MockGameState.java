@@ -155,20 +155,13 @@ public class MockGameState {
         int y = from.getY();
         Board board = state.getBoard();
 
-        for (int step = 1; step <= 7; step++) {
+        int[] next = nextCell(x, y, dir);
+        x = next[0];
+        y = next[1];
 
-            int[] next = nextCell(x, y, dir);
-            x = next[0];
-            y = next[1];
+        if (!board.isInsideBoard(x, y)) return null;
 
-            if (!board.isInsideBoard(x, y)) break;
-
-            Hex h = board.getHex(x, y);
-            if (h.isOccupied()) {
-                return h.getOccupant();
-            }
-        }
-
-        return null;
+        Hex h = board.getHex(x, y);
+        return h.isOccupied() ? h.getOccupant() : null;
     }
 }
