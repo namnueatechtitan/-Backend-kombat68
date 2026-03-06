@@ -230,7 +230,4 @@ public class Parser {
         la = tz.next();
     }
 
-    private void accept(TokenType t) {
-        if (la.type == t) la = tz.next();
-    }
 }

@@ -1,14 +1,26 @@
 package com.kombat.kombatbackend.service;
-import com.kombat.kombatbackend.dto.SpawnableHexDto;
-import com.kombat.kombatbackend.dto.PlayerEconomyDto;
-import java.util.List;
+
 import com.kombat.kombatbackend.dto.GameInitRequest;
 import com.kombat.kombatbackend.dto.MinionSetup;
-import com.kombat.kombatbackend.engine.gamestate.*;
-import com.kombat.kombatbackend.engine.parser.Parser;
-import com.kombat.kombatbackend.engine.strategy.Strategy;
+import com.kombat.kombatbackend.dto.PlayerEconomyDto;
+import com.kombat.kombatbackend.dto.SpawnableHexDto;
+import com.kombat.kombatbackend.engine.gamestate.CharacterType;
+import com.kombat.kombatbackend.engine.gamestate.GameConfig;
+import com.kombat.kombatbackend.engine.gamestate.GameEngine;
+import com.kombat.kombatbackend.engine.gamestate.GameMode;
+import com.kombat.kombatbackend.engine.gamestate.GamePhase;
+import com.kombat.kombatbackend.engine.gamestate.GameState;
+import com.kombat.kombatbackend.engine.gamestate.MinionKindDef;
+import com.kombat.kombatbackend.engine.gamestate.MinionType;
+import com.kombat.kombatbackend.engine.gamestate.TurnPhase;
 import org.springframework.stereotype.Service;
-import java.util.*;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Random;
 
 @Service
 public class GameService {
@@ -23,14 +35,23 @@ public class GameService {
     private final Map<Long, List<MinionKindDef>> selectedMinionsByPlayer = new HashMap<>();
 
     private GameState gameState;
-    private MockGameState mockGameState;
     private GameEngine engine;
+    private final GameSetupService setupService = new GameSetupService();
+    private final GameTurnService turnService = new GameTurnService();
     private final GameReadService readService = new GameReadService();
-    private final Random random = new Random();
+    private final GameBotService botService = new GameBotService();
+    private final GameLobbyDefaultsService lobbyDefaultsService = new GameLobbyDefaultsService();
+    private final Random random;
 
     private GamePhase phase = GamePhase.NOT_CONFIGURED;
 
-    // ================= CONFIG =================
+    public GameService() {
+        this(new Random());
+    }
+
+    public GameService(Random random) {
+        this.random = Objects.requireNonNull(random);
+    }
 
     public GameConfig getConfig() {
         if (this.config == null) {
@@ -40,23 +61,13 @@ public class GameService {
     }
 
     public void setConfig(GameConfig config) {
-
-        if (phase == GamePhase.PLAYING || phase == GamePhase.FINISHED) {
-            throw new IllegalStateException("Cannot change config after game started");
-        }
-
+        setupService.ensureEditable(phase, "Cannot change config after game started");
         this.config = config;
         this.phase = GamePhase.CONFIGURED;
     }
 
-    // ================= MODE =================
-
     public void setMode(GameMode mode) {
-
-        if (phase == GamePhase.PLAYING || phase == GamePhase.FINISHED) {
-            throw new IllegalStateException("Cannot change mode after game started");
-        }
-
+        setupService.ensureEditable(phase, "Cannot change mode after game started");
         this.mode = mode;
         this.phase = GamePhase.MODE_SET;
     }
@@ -65,14 +76,8 @@ public class GameService {
         return mode;
     }
 
-    // ================= CHARACTER =================
-
     public void setCharacter(long playerId, CharacterType character) {
-
-        if (phase == GamePhase.PLAYING || phase == GamePhase.FINISHED) {
-            throw new IllegalStateException("Cannot change character after game started");
-        }
-
+        setupService.ensureEditable(phase, "Cannot change character after game started");
         selectedCharacters.put(playerId, character);
     }
 
@@ -80,14 +85,8 @@ public class GameService {
         return selectedCharacters.get(playerId);
     }
 
-    // ================= MINION SETUP =================
-
     public void resetMinions(long playerId) {
-
-        if (phase == GamePhase.PLAYING || phase == GamePhase.FINISHED) {
-            throw new IllegalStateException("Cannot modify setup after game started");
-        }
-
+        setupService.ensureEditable(phase, "Cannot modify setup after game started");
         selectedMinionsByPlayer.put(playerId, new ArrayList<>());
         phase = GamePhase.SETUP_IN_PROGRESS;
     }
@@ -104,53 +103,27 @@ public class GameService {
                           String kindName,
                           int defenseFactor,
                           String strategyCode) {
-
-        if (phase == GamePhase.PLAYING || phase == GamePhase.FINISHED) {
-            throw new IllegalStateException("Cannot modify setup after game started");
-        }
-
-        if (strategyCode == null || strategyCode.trim().isEmpty()) {
-            throw new IllegalArgumentException("Strategy must not be empty");
-        }
-
-        if (config == null) {
-            throw new IllegalStateException("Config must be set first");
-        }
+        setupService.ensureEditable(phase, "Cannot modify setup after game started");
 
         MinionType type = MinionType.fromUserText(typeText);
-
         List<MinionKindDef> list =
-                selectedMinionsByPlayer.computeIfAbsent(playerId, k -> new ArrayList<>());
+                selectedMinionsByPlayer.computeIfAbsent(playerId, ignored -> new ArrayList<>());
 
         if (list.stream().anyMatch(m -> m.getType() == type)) {
             throw new IllegalStateException("Duplicate minion type for player " + playerId);
         }
 
-        // Parse strategy with dummy state
-        Board board = new Board();
-        List<Minion> minions = new ArrayList<>();
-        BudgetManager budgetManager = new BudgetManager(config.initBudget());
-
-        GameState dummyState = new GameState(
-                board,
-                minions,
-                budgetManager,
-                TurnPhase.PLAYER_ACTION,
-                config
+        MinionKindDef def = setupService.buildMinionKindDef(
+                config,
+                typeText,
+                kindName,
+                defenseFactor,
+                strategyCode
         );
-
-        MockGameState mock = new MockGameState(dummyState);
-        Parser parser = new Parser(strategyCode, mock);
-        Strategy strategy = parser.parseStrategy();
-
-        MinionKindDef def =
-                new MinionKindDef(type, kindName, defenseFactor, strategyCode, strategy);
 
         list.add(def);
 
-        if (!getSelectedMinions(P1).isEmpty() &&
-                !getSelectedMinions(P2).isEmpty()) {
-
+        if (!getSelectedMinions(P1).isEmpty() && !getSelectedMinions(P2).isEmpty()) {
             phase = GamePhase.READY_TO_START;
         }
     }
@@ -159,85 +132,45 @@ public class GameService {
         return selectedMinionsByPlayer.getOrDefault(playerId, List.of());
     }
 
-    // ================= START GAME =================
-
     public void startGame() {
-
         if (phase == GamePhase.PLAYING) {
             throw new IllegalStateException("Game already started");
         }
 
-        if (getSelectedMinions(P1).isEmpty() ||
-                getSelectedMinions(P2).isEmpty()) {
+        if (getSelectedMinions(P1).isEmpty() || getSelectedMinions(P2).isEmpty()) {
             throw new IllegalStateException("Both players must configure minions");
         }
 
-        if (!selectedCharacters.containsKey(P1) ||
-                !selectedCharacters.containsKey(P2)) {
+        if (!selectedCharacters.containsKey(P1) || !selectedCharacters.containsKey(P2)) {
             throw new IllegalStateException("Both players must select characters");
         }
 
-        if (config == null) {
-            throw new IllegalStateException("Config not set");
-        }
-
-        Board board = new Board();
-        BudgetManager budget = new BudgetManager(config.initBudget());
-        budget.initPlayer(P1, config.initBudget());
-        budget.initPlayer(P2, config.initBudget());
-        List<Minion> minions = new ArrayList<>();
-
-        // 🔥 เปลี่ยนแค่ตรงนี้
-        GameState gs = new GameState(
-                board,
-                minions,
-                budget,
-                TurnPhase.FREE_SPAWN, // เดิมคือ PLAY
-                config
-        );
-
-        MockGameState mg = new MockGameState(gs);
-
-        for (MinionKindDef def : getSelectedMinions(P1)) {
-            gs.registerKind(P1, def);
-        }
-        for (MinionKindDef def : getSelectedMinions(P2)) {
-            gs.registerKind(P2, def);
-        }
-
-        gs.lockSetup();
-
-        this.gameState = gs;
-        this.mockGameState = mg;
-        this.engine = new GameEngine(config, gs, mg);
+        GameSetupService.GameStartBundle bundle =
+                setupService.createGameStartBundle(config, selectedMinionsByPlayer, P1, P2);
+        this.gameState = bundle.gameState();
+        this.engine = bundle.engine();
 
         phase = GamePhase.PLAYING;
     }
 
-    // ================= GAMEPLAY =================
-
     public boolean spawn(String type, int row, int col) {
         requirePhase(GamePhase.PLAYING);
-        boolean success = engine.spawn(type, row, col);
+        boolean success = turnService.spawn(engine, type, row, col);
         if (success) {
             runSolitaireBotIfNeeded();
         }
-        if (engine.isGameOver()) {
+        if (turnService.markFinishedIfGameOver(engine, gameState)) {
             phase = GamePhase.FINISHED;
-            if (gameState != null) {
-                gameState.setPhase(TurnPhase.END);
-            }
         }
         return success;
     }
 
     public boolean buyHex(int row, int col) {
         requirePhase(GamePhase.PLAYING);
-        return engine.buyHex(row, col);
+        return turnService.buyHex(engine, row, col);
     }
 
     public void endTurn() {
-
         if (phase == GamePhase.FINISHED) {
             if (gameState != null) {
                 gameState.setPhase(TurnPhase.END);
@@ -246,22 +179,16 @@ public class GameService {
         }
 
         requirePhase(GamePhase.PLAYING);
-        engine.executeTurn();
+        turnService.executeTurn(engine);
         runSolitaireBotIfNeeded();
 
-        if (engine.isGameOver()) {
+        if (turnService.markFinishedIfGameOver(engine, gameState)) {
             phase = GamePhase.FINISHED;
-            if (gameState != null) {
-                gameState.setPhase(TurnPhase.END);
-            }
         }
     }
 
     public long getCurrentPlayer() {
-
-        if (phase != GamePhase.PLAYING &&
-                phase != GamePhase.FINISHED) {
-
+        if (phase != GamePhase.PLAYING && phase != GamePhase.FINISHED) {
             throw new IllegalStateException("Game has not started yet");
         }
 
@@ -271,12 +198,15 @@ public class GameService {
 
         return engine.getCurrentPlayer();
     }
+
     public boolean isGameOver() {
         return engine != null && engine.isGameOver();
     }
 
     public String getWinner() {
-        if (engine == null) return "NOT_STARTED";
+        if (engine == null) {
+            return "NOT_STARTED";
+        }
         return engine.getWinner();
     }
 
@@ -288,25 +218,12 @@ public class GameService {
         return phase;
     }
 
-    private void requirePhase(GamePhase... allowed) {
-
-        for (GamePhase p : allowed) {
-            if (this.phase == p) return;
-        }
-
-        throw new IllegalStateException(
-                "Invalid game phase: " + this.phase
-        );
-    }
-
     public void initFullGame(GameInitRequest req) {
-
         this.phase = GamePhase.NOT_CONFIGURED;
         this.selectedCharacters.clear();
         this.selectedMinionsByPlayer.clear();
         this.engine = null;
         this.gameState = null;
-        this.mockGameState = null;
 
         setConfig(req.getConfig());
         setMode(req.getMode());
@@ -315,13 +232,13 @@ public class GameService {
         setCharacter(P2, req.getPlayer2().getCharacter());
 
         resetMinions(P1);
-        for (MinionSetup m : req.getPlayer1().getMinions()) {
-            addMinion(P1, m.getType(), m.getDefenseFactor(), m.getStrategy());
+        for (MinionSetup minion : req.getPlayer1().getMinions()) {
+            addMinion(P1, minion.getType(), minion.getDefenseFactor(), minion.getStrategy());
         }
 
         resetMinions(P2);
-        for (MinionSetup m : req.getPlayer2().getMinions()) {
-            addMinion(P2, m.getType(), m.getDefenseFactor(), m.getStrategy());
+        for (MinionSetup minion : req.getPlayer2().getMinions()) {
+            addMinion(P2, minion.getType(), minion.getDefenseFactor(), minion.getStrategy());
         }
 
         startGame();
@@ -335,71 +252,69 @@ public class GameService {
         this.selectedMinionsByPlayer.clear();
         this.engine = null;
         this.gameState = null;
-        this.mockGameState = null;
     }
-    public List<SpawnableHexDto> getSpawnableHexes() {
-        if (engine == null) {
-            return List.of();
+
+    public void initLobbyGame(GameMode requestedMode) {
+        resetGame();
+
+        GameMode resolvedMode = setupService.resolveMode(requestedMode);
+        setConfig(GameConfig.sampleDefaults());
+        setMode(resolvedMode);
+
+        setCharacter(P1, CharacterType.HUMAN);
+        setCharacter(P2, CharacterType.DEMON);
+
+        addDefaultMinionsForPlayer(P1);
+        addDefaultMinionsForPlayer(P2);
+
+        startGame();
+    }
+
+    private void addDefaultMinionsForPlayer(long playerId) {
+        resetMinions(playerId);
+        String strategy = "done;";
+        for (String type : lobbyDefaultsService.defaultTypes()) {
+            String name = lobbyDefaultsService.defaultName(playerId, type, P1);
+            addMinion(playerId, type, name, 1, strategy);
         }
-        return engine.getSpawnableHexes();
+    }
+
+    public List<SpawnableHexDto> getSpawnableHexes() {
+        return readService.getSpawnableHexes(engine);
     }
 
     public TurnPhase getTurnPhase() {
-        if (gameState == null) return null;
-        return gameState.getPhase();
+        return readService.getTurnPhase(gameState);
     }
 
     public List<SpawnableHexDto> getBuyableHexes() {
         if (engine == null || phase != GamePhase.PLAYING) {
             return List.of();
         }
-        return engine.getBuyableHexes(getCurrentPlayer());
+        return readService.getBuyableHexes(engine, phase, getCurrentPlayer());
     }
 
     public long getSpawnsLeft() {
         if (engine == null || phase != GamePhase.PLAYING) {
             return 0L;
         }
-        return engine.getSpawnsLeft(getCurrentPlayer());
+        return readService.getSpawnsLeft(engine, phase, getCurrentPlayer());
     }
 
     public List<String> getActionLogs() {
-        if (engine == null || (phase != GamePhase.PLAYING && phase != GamePhase.FINISHED)) {
-            return List.of();
-        }
-        return engine.getActionLogs();
+        return readService.getActionLogs(engine, phase);
     }
 
     public Map<Long, PlayerEconomyDto> getPlayerEconomy() {
-        if (engine == null || gameState == null || (phase != GamePhase.PLAYING && phase != GamePhase.FINISHED)) {
-            return Map.of();
-        }
-
-        Map<Long, PlayerEconomyDto> result = new LinkedHashMap<>();
-        result.put(P1, new PlayerEconomyDto(
-                P1,
-                gameState.getBudgetManager().getBudget(P1),
-                engine.getSpawnsLeft(P1),
-                engine.getLastInterest(P1),
-                engine.getLastInterestRate(P1)
-        ));
-        result.put(P2, new PlayerEconomyDto(
-                P2,
-                gameState.getBudgetManager().getBudget(P2),
-                engine.getSpawnsLeft(P2),
-                engine.getLastInterest(P2),
-                engine.getLastInterestRate(P2)
-        ));
-        return result;
+        return readService.getPlayerEconomy(engine, gameState, phase, P1, P2);
     }
-    public List<String> getAvailableTypes() {
 
+    public List<String> getAvailableTypes() {
         if (gameState == null || engine == null || phase != GamePhase.PLAYING) {
             return List.of();
         }
 
         long current = engine.getCurrentPlayer();
-
         return gameState.getKinds(current)
                 .keySet()
                 .stream()
@@ -408,161 +323,28 @@ public class GameService {
     }
 
     public void progressAutoModeIfNeeded() {
-        if (mode != GameMode.AUTO || engine == null || gameState == null || phase != GamePhase.PLAYING) {
-            return;
-        }
-
-        if (engine.isGameOver()) {
+        GameBotService.Result result =
+                botService.progressAutoModeIfNeeded(mode, phase, engine, gameState, random);
+        if (result == GameBotService.Result.FINISHED) {
             phase = GamePhase.FINISHED;
-            gameState.setPhase(TurnPhase.END);
-            return;
-        }
-
-        // One bot step per poll keeps the match visible instead of finishing instantly.
-        TurnPhase turnPhase = gameState.getPhase();
-        long current = engine.getCurrentPlayer();
-
-        if (turnPhase == TurnPhase.FREE_SPAWN) {
-            tryBotFreeSpawn(current);
-        } else if (turnPhase == TurnPhase.PLAYER_ACTION) {
-            tryBotBuyHex(current);
-            tryBotSpawn(current);
-            engine.executeTurn();
-        }
-
-        if (engine.isGameOver()) {
-            phase = GamePhase.FINISHED;
-            gameState.setPhase(TurnPhase.END);
         }
     }
 
     private void runSolitaireBotIfNeeded() {
-        if (mode != GameMode.SOLITAIRE || engine == null || gameState == null) {
-            return;
-        }
-
-        while (phase == GamePhase.PLAYING
-                && !engine.isGameOver()
-                && engine.getCurrentPlayer() == P2) {
-
-            TurnPhase turnPhase = gameState.getPhase();
-
-            if (turnPhase == TurnPhase.FREE_SPAWN) {
-                if (!tryBotFreeSpawn(P2)) {
-                    break;
-                }
-                continue;
-            }
-
-            if (turnPhase == TurnPhase.PLAYER_ACTION) {
-                tryBotBuyHex(P2);
-                tryBotSpawn(P2);
-                engine.executeTurn();
-                continue;
-            }
-
-            break;
+        GameBotService.Result result =
+                botService.runSolitaireBotIfNeeded(mode, phase, engine, gameState, random, P2);
+        if (result == GameBotService.Result.FINISHED) {
+            phase = GamePhase.FINISHED;
         }
     }
 
-    private boolean tryBotFreeSpawn(long playerId) {
-        List<String> availableTypes = new ArrayList<>(getTypesForPlayer(playerId));
-        if (availableTypes.isEmpty()) {
-            return false;
-        }
-
-        List<SpawnableHexDto> candidates = new ArrayList<>(getEmptyTerritoryHexes(playerId));
-        if (candidates.isEmpty()) {
-            return false;
-        }
-
-        Collections.shuffle(availableTypes, random);
-        Collections.shuffle(candidates, random);
-
-        for (SpawnableHexDto hex : candidates) {
-            for (String type : availableTypes) {
-                if (engine.spawn(type, hex.getRow(), hex.getCol())) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    private void tryBotBuyHex(long playerId) {
-        List<SpawnableHexDto> buyable = engine.getBuyableHexes(playerId);
-        if (buyable.isEmpty()) {
-            return;
-        }
-
-        if (random.nextInt(100) >= 60) {
-            return;
-        }
-
-        Collections.shuffle(buyable, random);
-        for (SpawnableHexDto hex : buyable) {
-            if (engine.buyHex(hex.getRow(), hex.getCol())) {
+    private void requirePhase(GamePhase... allowed) {
+        for (GamePhase p : allowed) {
+            if (this.phase == p) {
                 return;
             }
         }
-    }
 
-    private void tryBotSpawn(long playerId) {
-        if (random.nextInt(100) >= 75) {
-            return;
-        }
-
-        List<String> availableTypes = new ArrayList<>(getTypesForPlayer(playerId));
-        if (availableTypes.isEmpty()) {
-            return;
-        }
-
-        List<SpawnableHexDto> candidates = new ArrayList<>(getEmptyTerritoryHexes(playerId));
-        if (candidates.isEmpty()) {
-            return;
-        }
-
-        Collections.shuffle(availableTypes, random);
-        Collections.shuffle(candidates, random);
-
-        for (SpawnableHexDto hex : candidates) {
-            for (String type : availableTypes) {
-                if (engine.spawn(type, hex.getRow(), hex.getCol())) {
-                    return;
-                }
-            }
-        }
-    }
-
-    private List<String> getTypesForPlayer(long playerId) {
-        if (gameState == null) {
-            return List.of();
-        }
-
-        return gameState.getKinds(playerId)
-                .keySet()
-                .stream()
-                .map(Enum::name)
-                .toList();
-    }
-
-    private List<SpawnableHexDto> getEmptyTerritoryHexes(long playerId) {
-        if (engine == null || gameState == null) {
-            return List.of();
-        }
-
-        Set<String> occupied = new HashSet<>();
-        for (Minion m : gameState.getMinions()) {
-            Hex pos = m.getPosition();
-            if (pos != null) {
-                occupied.add(pos.getX() + "," + pos.getY());
-            }
-        }
-
-        return engine.getSpawnableHexes().stream()
-                .filter(h -> h.getOwnerId() == playerId)
-                .filter(h -> !occupied.contains(h.getRow() + "," + h.getCol()))
-                .toList();
+        throw new IllegalStateException("Invalid game phase: " + this.phase);
     }
 }

@@ -53,7 +53,7 @@ class GameServiceFreeSpawnFlowTest {
                 service.getGameState().getBudgetManager().getBudget(GameService.P1)
         );
 
-        assertFalse(service.spawn("FIGHTER", 0, 1));
+        assertTrue(service.spawn("FIGHTER", 0, 1));
     }
 
     @Test
@@ -183,7 +183,7 @@ class GameServiceFreeSpawnFlowTest {
         long budgetAfter = service.getGameState().getBudgetManager().getBudget(GameService.P1);
 
         assertEquals(budgetBefore - 2, budgetAfter);
-        assertTrue(service.getActionLogs().stream().anyMatch(log -> log.contains("P1 SHOOT UP x=1 NO_TARGET")));
+        assertTrue(service.getActionLogs().stream().anyMatch(log -> log.contains("P1 SHOOT UP x=1 from=(0,0) NO_TARGET")));
     }
 
     @Test
@@ -274,7 +274,7 @@ class GameServiceFreeSpawnFlowTest {
 
     private static GameInitRequest buildRequest(String p1Strategy, String p2Strategy) {
         GameInitRequest req = new GameInitRequest();
-        req.setConfig(new GameConfig(100, 1000, 1000, 100, 90, 5000, 0, 10, 2));
+        req.setConfig(new GameConfig(100, 100, 1000, 100, 90, 5000, 0, 10, 2));
         req.setMode(GameMode.DUEL);
         req.setPlayer1(buildPlayer(p1Strategy));
         req.setPlayer2(buildPlayer(p2Strategy));
@@ -284,7 +284,7 @@ class GameServiceFreeSpawnFlowTest {
 
     private static GameInitRequest buildRequestWithMaxTurns(String p1Strategy, String p2Strategy, long maxTurns) {
         GameInitRequest req = new GameInitRequest();
-        req.setConfig(new GameConfig(100, 1000, 1000, 100, 90, 5000, 0, maxTurns, 2));
+        req.setConfig(new GameConfig(100, 100, 1000, 100, 90, 5000, 0, maxTurns, 2));
         req.setMode(GameMode.DUEL);
         req.setPlayer1(buildPlayer(p1Strategy));
         req.setPlayer2(buildPlayer(p2Strategy));
