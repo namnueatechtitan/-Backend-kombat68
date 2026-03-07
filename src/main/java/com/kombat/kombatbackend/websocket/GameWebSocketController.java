@@ -106,7 +106,7 @@ public class GameWebSocketController {
 
         if (!lobbyService.canStart(room)) {
             WsMessages.RoomStateMessage msg = lobbyService.toMessage(room);
-            msg.setError("Duel mode requires 2 human players before starting");
+            msg.setError("Room requires 2 human players and complete setup before starting");
             messagingTemplate.convertAndSend("/topic/room/" + room.getRoomId(), msg);
             return;
         }

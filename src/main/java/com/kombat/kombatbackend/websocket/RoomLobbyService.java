@@ -76,7 +76,9 @@ public class RoomLobbyService {
         if (!room.getPlayers().contains(name)) {
             room.getPlayers().add(name);
         }
-        if (room.getMode() == GameMode.DUEL && humanPlayers(room.getPlayers()).size() >= 2 && room.getSetupPhase() == RoomSetupPhase.LOBBY) {
+        if (requiresTwoHumanPlayers(room.getMode())
+                && humanPlayers(room.getPlayers()).size() >= 2
+                && room.getSetupPhase() == RoomSetupPhase.LOBBY) {
             room.setSetupPhase(RoomSetupPhase.MINION_TYPE_COUNT);
         }
         touch(room);
@@ -232,7 +234,7 @@ public class RoomLobbyService {
         if (room == null) {
             return false;
         }
-        if (room.getMode() == GameMode.DUEL && humanPlayers(room.getPlayers()).size() < 2) {
+        if (requiresTwoHumanPlayers(room.getMode()) && humanPlayers(room.getPlayers()).size() < 2) {
             return false;
         }
         return room.getSetupPhase() == RoomSetupPhase.PRE_BATTLE;
@@ -333,12 +335,11 @@ public class RoomLobbyService {
     private void applyModeDefaults(RoomState room) {
         if (room.getMode() == GameMode.SOLITAIRE) {
             addIfAbsent(room.getPlayers(), "BOT");
-            return;
         }
-        if (room.getMode() == GameMode.AUTO) {
-            addIfAbsent(room.getPlayers(), "BOT_A");
-            addIfAbsent(room.getPlayers(), "BOT_B");
-        }
+    }
+
+    private static boolean requiresTwoHumanPlayers(GameMode mode) {
+        return mode == GameMode.DUEL || mode == GameMode.AUTO;
     }
 
     private static void addIfAbsent(List<String> players, String value) {
