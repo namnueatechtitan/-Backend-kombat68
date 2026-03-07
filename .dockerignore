@@ -1,0 +1,7 @@
+.git
+.mvn-repo
+.vscode
+target
+*.http
+git-log-progress.txt
+Stategy

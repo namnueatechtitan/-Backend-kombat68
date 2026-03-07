@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: kombat-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/hello
+    autoDeploy: true
+    envVars:
+      - key: CORS_ALLOWED_ORIGIN_PATTERNS
+        sync: false
+      - key: REDIS_HOST
+        sync: false
+      - key: REDIS_PORT
+        value: "6379"
+      - key: REDIS_USERNAME
+        sync: false
+      - key: REDIS_PASSWORD
+        sync: false
