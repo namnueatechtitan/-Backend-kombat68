@@ -78,15 +78,15 @@ public final class GameConfig {
 
     public static GameConfig sampleDefaults() {
         return new GameConfig(
+                200,
+                300,
+                2000,
+                500,
                 120,
-                600,
-                1500,
-                400,
-                120,
-                4000,
+                10000,
                 3,
-                20,
-                12
+                40,
+                10
         );
     }
 
