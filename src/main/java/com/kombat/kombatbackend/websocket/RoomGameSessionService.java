@@ -212,7 +212,9 @@ public class RoomGameSessionService {
 
     private static void initializeGameFromRoomSetup(GameService game, RoomState room) {
         game.resetGame();
-        game.setConfig(com.kombat.kombatbackend.engine.gamestate.GameConfig.sampleDefaults());
+        game.setConfig(room.getConfig() == null
+                ? com.kombat.kombatbackend.engine.gamestate.GameConfig.sampleDefaults()
+                : room.getConfig());
         game.setMode(room.getMode());
         game.setCharacter(GameService.P1, room.getPlayer1Character());
         game.setCharacter(GameService.P2, room.getPlayer2Character());

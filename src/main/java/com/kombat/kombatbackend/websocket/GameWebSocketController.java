@@ -152,6 +152,13 @@ public class GameWebSocketController {
                 lobbyService.selectCharacter(request.getRoomId(), playerId, request.getCharacter()));
     }
 
+    @MessageMapping("/update-room-config")
+    public void updateRoomConfig(WsMessages.UpdateRoomConfigRequest request,
+                                 @Header("simpSessionId") String sessionId) {
+        applyRoomSetupChange(request.getRoomId(), sessionId, playerId ->
+                lobbyService.updateRoomConfig(request.getRoomId(), playerId, request.getConfig()));
+    }
+
     @MessageMapping("/submit-room-minion-setup")
     public void submitRoomMinionSetup(WsMessages.SubmitRoomMinionSetupRequest request,
                                       @Header("simpSessionId") String sessionId) {

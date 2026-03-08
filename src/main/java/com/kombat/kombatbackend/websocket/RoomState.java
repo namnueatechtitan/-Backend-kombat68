@@ -1,6 +1,7 @@
 package com.kombat.kombatbackend.websocket;
 
 import com.kombat.kombatbackend.engine.gamestate.CharacterType;
+import com.kombat.kombatbackend.engine.gamestate.GameConfig;
 import com.kombat.kombatbackend.engine.gamestate.GameMode;
 
 import java.util.ArrayList;
@@ -11,6 +12,7 @@ public class RoomState {
     private String roomId;
     private String host;
     private GameMode mode;
+    private GameConfig config;
     private List<String> players = new ArrayList<>();
     private boolean started;
     private RoomSetupPhase setupPhase = RoomSetupPhase.LOBBY;
@@ -45,6 +47,14 @@ public class RoomState {
 
     public void setMode(GameMode mode) {
         this.mode = mode;
+    }
+
+    public GameConfig getConfig() {
+        return config;
+    }
+
+    public void setConfig(GameConfig config) {
+        this.config = config;
     }
 
     public List<String> getPlayers() {

@@ -1,6 +1,7 @@
 package com.kombat.kombatbackend.websocket;
 
 import com.kombat.kombatbackend.engine.gamestate.CharacterType;
+import com.kombat.kombatbackend.engine.gamestate.GameConfig;
 import com.kombat.kombatbackend.engine.gamestate.GameMode;
 import org.springframework.stereotype.Service;
 
@@ -57,6 +58,7 @@ public class RoomLobbyService {
         room.setRoomId(roomId);
         room.setHost(host);
         room.setMode(mode == null ? GameMode.DUEL : mode);
+        room.setConfig(GameConfig.sampleDefaults());
         room.setPlayers(new ArrayList<>(List.of(host)));
         room.setStarted(false);
         room.setSetupPhase(RoomSetupPhase.LOBBY);
@@ -137,6 +139,21 @@ public class RoomLobbyService {
             room.setSetupPhase(RoomSetupPhase.MINION_SETUP);
         }
 
+        touch(room);
+        store.saveRoom(room);
+        return room;
+    }
+
+    public synchronized RoomState updateRoomConfig(String roomId, long playerId, GameConfig config) {
+        RoomState room = getRequiredEditableRoom(roomId);
+        if (config == null) {
+            throw new IllegalArgumentException("Config is required");
+        }
+        if (playerId != PLAYER_ONE_ID) {
+            throw new IllegalStateException("Only host can update room config");
+        }
+
+        room.setConfig(config);
         touch(room);
         store.saveRoom(room);
         return room;
@@ -317,6 +334,7 @@ public class RoomLobbyService {
         }
         msg.setRoomId(room.getRoomId());
         msg.setMode(room.getMode());
+        msg.setConfig(room.getConfig());
         msg.setHost(room.getHost());
         msg.setPlayers(new ArrayList<>(room.getPlayers()));
         msg.setStarted(room.isStarted());

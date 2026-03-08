@@ -1,6 +1,7 @@
 package com.kombat.kombatbackend.websocket;
 
 import com.kombat.kombatbackend.engine.gamestate.CharacterType;
+import com.kombat.kombatbackend.engine.gamestate.GameConfig;
 import com.kombat.kombatbackend.engine.gamestate.GameMode;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,6 +58,16 @@ public class WsMessages {
         public void setCharacter(CharacterType character) { this.character = character; }
     }
 
+    public static class UpdateRoomConfigRequest {
+        private String roomId;
+        private GameConfig config;
+
+        public String getRoomId() { return roomId; }
+        public void setRoomId(String roomId) { this.roomId = roomId; }
+        public GameConfig getConfig() { return config; }
+        public void setConfig(GameConfig config) { this.config = config; }
+    }
+
     public static class SubmitRoomMinionSetupRequest {
         private String roomId;
         private List<RoomConfiguredMinion> minions = new ArrayList<>();
@@ -109,6 +120,7 @@ public class WsMessages {
     public static class RoomStateMessage {
         private String roomId;
         private GameMode mode;
+        private GameConfig config;
         private String host;
         private List<String> players = new ArrayList<>();
         private boolean started;
@@ -127,6 +139,8 @@ public class WsMessages {
         public void setRoomId(String roomId) { this.roomId = roomId; }
         public GameMode getMode() { return mode; }
         public void setMode(GameMode mode) { this.mode = mode; }
+        public GameConfig getConfig() { return config; }
+        public void setConfig(GameConfig config) { this.config = config; }
         public String getHost() { return host; }
         public void setHost(String host) { this.host = host; }
         public List<String> getPlayers() { return players; }

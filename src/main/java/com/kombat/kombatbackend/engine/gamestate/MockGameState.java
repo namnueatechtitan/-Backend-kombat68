@@ -106,7 +106,7 @@ public class MockGameState {
 
     private static int computeDamage(long expenditure, Minion target) {
         int def = target.getDefenseFactor();
-        long dmg = Math.max(1L, expenditure - def);
+        long dmg = Math.max(1L, expenditure / Math.max(1L, def + 1L));
         if (dmg > Integer.MAX_VALUE) dmg = Integer.MAX_VALUE;
         return (int) dmg;
     }
