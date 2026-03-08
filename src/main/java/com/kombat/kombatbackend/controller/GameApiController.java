@@ -67,6 +67,12 @@ public class GameApiController {
 
     @PostMapping("/mode")
     public ResponseEntity<?> setMode(@RequestBody ModeRequest request) {
+        if (request == null || request.getMode() == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Mode is required"
+            ));
+        }
+
         gameService.setMode(request.getMode());
         return ResponseEntity.ok(Map.of(
                 "mode", gameService.getMode(),
@@ -86,6 +92,11 @@ public class GameApiController {
     @PostMapping("/character")
     public ResponseEntity<?> setCharacter(
             @RequestBody SelectCharacterRequest request) {
+        if (request == null || request.getCharacter() == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Character is required"
+            ));
+        }
 
         gameService.setCharacter(
                 request.getPlayerId(),
