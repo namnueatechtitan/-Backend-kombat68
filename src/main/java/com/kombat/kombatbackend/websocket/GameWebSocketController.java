@@ -162,8 +162,42 @@ public class GameWebSocketController {
     @MessageMapping("/submit-room-minion-setup")
     public void submitRoomMinionSetup(WsMessages.SubmitRoomMinionSetupRequest request,
                                       @Header("simpSessionId") String sessionId) {
-        applyRoomSetupChange(request.getRoomId(), sessionId, playerId ->
-                lobbyService.submitMinionSetup(request.getRoomId(), playerId, request.getMinions()));
+        RoomState room = lobbyService.getRoom(request.getRoomId());
+        if (room == null) {
+            WsMessages.RoomStateMessage err = new WsMessages.RoomStateMessage();
+            err.setRoomId(request.getRoomId());
+            err.setError("Room not found");
+            messagingTemplate.convertAndSend("/topic/room/" + request.getRoomId(), err);
+            return;
+        }
+
+        Long playerId = lobbyService.resolvePlayerId(request.getRoomId(), sessionId);
+        if (playerId == null) {
+            WsMessages.RoomStateMessage err = lobbyService.toMessage(room);
+            err.setError("You are not allowed to modify this room");
+            messagingTemplate.convertAndSend("/topic/room/" + request.getRoomId(), err);
+            return;
+        }
+
+        try {
+            RoomState updated = lobbyService.submitMinionSetup(request.getRoomId(), playerId, request.getMinions());
+            if (updated.getMode() == GameMode.DUEL && lobbyService.canStart(updated)) {
+                roomGameSessionService.startRoomGame(updated);
+                lobbyService.markStarted(updated.getRoomId(), true);
+                RoomState startedRoom = lobbyService.getRoom(updated.getRoomId());
+                broadcastRoom(startedRoom);
+                broadcastGame(startedRoom.getRoomId());
+                autoScheduler.schedule(() -> broadcastGame(startedRoom.getRoomId()), 200, TimeUnit.MILLISECONDS);
+                autoScheduler.schedule(() -> broadcastGame(startedRoom.getRoomId()), 800, TimeUnit.MILLISECONDS);
+                startAutoLoopIfNeeded(startedRoom);
+                return;
+            }
+            broadcastRoom(updated);
+        } catch (RuntimeException ex) {
+            WsMessages.RoomStateMessage err = lobbyService.toMessage(room);
+            err.setError(ex.getMessage());
+            messagingTemplate.convertAndSend("/topic/room/" + request.getRoomId(), err);
+        }
     }
 
     private void broadcastRoom(RoomState room) {
