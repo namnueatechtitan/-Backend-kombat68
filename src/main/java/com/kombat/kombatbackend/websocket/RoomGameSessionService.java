@@ -3,6 +3,7 @@ package com.kombat.kombatbackend.websocket;
 import com.kombat.kombatbackend.dto.GameStateDto;
 import com.kombat.kombatbackend.dto.GameStatusResponse;
 import com.kombat.kombatbackend.dto.MinionDto;
+import com.kombat.kombatbackend.engine.gamestate.CharacterType;
 import com.kombat.kombatbackend.engine.gamestate.GameMode;
 import com.kombat.kombatbackend.engine.gamestate.GamePhase;
 import com.kombat.kombatbackend.engine.gamestate.GameState;
@@ -219,14 +220,52 @@ public class RoomGameSessionService {
         game.setCharacter(GameService.P1, room.getPlayer1Character());
         game.setCharacter(GameService.P2, room.getPlayer2Character());
         game.resetMinions(GameService.P1);
-        for (RoomConfiguredMinion minion : room.getPlayer1ConfiguredMinions()) {
-            game.addMinion(GameService.P1, minion.getType(), minion.getName(), minion.getDefenseFactor(), minion.getStrategy());
-        }
         game.resetMinions(GameService.P2);
-        for (RoomConfiguredMinion minion : room.getPlayer2ConfiguredMinions()) {
-            game.addMinion(GameService.P2, minion.getType(), minion.getName(), minion.getDefenseFactor(), minion.getStrategy());
+        if (room.getMode() == GameMode.DUEL && room.getSharedConfiguredMinions() != null && !room.getSharedConfiguredMinions().isEmpty()) {
+            for (RoomConfiguredMinion minion : room.getSharedConfiguredMinions()) {
+                game.addMinion(
+                        GameService.P1,
+                        minion.getType(),
+                        resolvePlayerOneName(room.getPlayer1Character(), minion),
+                        minion.getDefenseFactor(),
+                        minion.getStrategy()
+                );
+                game.addMinion(
+                        GameService.P2,
+                        minion.getType(),
+                        defaultNameForCharacter(room.getPlayer2Character(), minion.getType()),
+                        minion.getDefenseFactor(),
+                        minion.getStrategy()
+                );
+            }
+        } else {
+            for (RoomConfiguredMinion minion : room.getPlayer1ConfiguredMinions()) {
+                game.addMinion(GameService.P1, minion.getType(), minion.getName(), minion.getDefenseFactor(), minion.getStrategy());
+            }
+            for (RoomConfiguredMinion minion : room.getPlayer2ConfiguredMinions()) {
+                game.addMinion(GameService.P2, minion.getType(), minion.getName(), minion.getDefenseFactor(), minion.getStrategy());
+            }
         }
         game.startGame();
+    }
+
+    private static String resolvePlayerOneName(CharacterType character, RoomConfiguredMinion minion) {
+        if (minion.getName() != null && !minion.getName().isBlank()) {
+            return minion.getName();
+        }
+        return defaultNameForCharacter(character, minion.getType());
+    }
+
+    private static String defaultNameForCharacter(CharacterType character, String type) {
+        boolean demon = character == CharacterType.DEMON;
+        return switch (type == null ? "" : type.trim().toUpperCase()) {
+            case "FIGHTER" -> demon ? "MUZAN" : "TANJIRO";
+            case "ASSASSIN" -> demon ? "KOKUSHIBO" : "YORIICHI";
+            case "DPS" -> demon ? "DOMA" : "GIYU";
+            case "TANK" -> demon ? "AKAZA" : "KYOJURO";
+            case "SUPPORT" -> demon ? "NAKIME" : "INOSUKE";
+            default -> demon ? "DEMON" : "HUMAN";
+        };
     }
 
     private static GameStatusResponse buildLiveStatus(GameService game) {

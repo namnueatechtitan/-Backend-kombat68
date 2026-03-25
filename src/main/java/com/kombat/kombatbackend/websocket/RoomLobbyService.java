@@ -98,6 +98,19 @@ public class RoomLobbyService {
             throw new IllegalStateException("Not allowed to submit minion count in phase " + room.getSetupPhase());
         }
 
+        if (room.getMode() == GameMode.DUEL) {
+            if (playerId != PLAYER_ONE_ID) {
+                throw new IllegalStateException("Only the host can choose duel minion count");
+            }
+            room.setPlayer1MinionTypeCount(count);
+            room.setPlayer2MinionTypeCount(count);
+            room.setEffectiveMinionTypeCount(count);
+            room.setSetupPhase(RoomSetupPhase.CHARACTER_SELECT);
+            touch(room);
+            store.saveRoom(room);
+            return room;
+        }
+
         if (playerId == PLAYER_ONE_ID) {
             room.setPlayer1MinionTypeCount(count);
         } else if (playerId == PLAYER_TWO_ID) {
@@ -125,6 +138,19 @@ public class RoomLobbyService {
 
         if (room.getSetupPhase() != RoomSetupPhase.CHARACTER_SELECT) {
             throw new IllegalStateException("Not allowed to select character in phase " + room.getSetupPhase());
+        }
+
+        if (room.getMode() == GameMode.DUEL) {
+            if (playerId != PLAYER_ONE_ID) {
+                throw new IllegalStateException("Player 1 chooses the duel character alignment");
+            }
+
+            room.setPlayer1Character(character);
+            room.setPlayer2Character(oppositeCharacter(character));
+            room.setSetupPhase(RoomSetupPhase.MINION_SETUP);
+            touch(room);
+            store.saveRoom(room);
+            return room;
         }
 
         if (playerId == PLAYER_ONE_ID) {
@@ -174,6 +200,21 @@ public class RoomLobbyService {
         }
 
         List<RoomConfiguredMinion> copied = copyMinions(minions);
+        if (room.getMode() == GameMode.DUEL) {
+            if (playerId != PLAYER_ONE_ID) {
+                throw new IllegalStateException("Only the host can configure duel minions");
+            }
+            room.setSharedConfiguredMinions(copied);
+            room.setPlayer1ConfiguredMinions(copyMinions(copied));
+            room.setPlayer2ConfiguredMinions(copyMinions(copied));
+            room.setPlayer1SharedSetupConfirmed(true);
+            room.setPlayer2SharedSetupConfirmed(true);
+            room.setSetupPhase(RoomSetupPhase.PRE_BATTLE);
+            touch(room);
+            store.saveRoom(room);
+            return room;
+        }
+
         if (playerId == PLAYER_ONE_ID) {
             room.setPlayer1ConfiguredMinions(copied);
         } else if (playerId == PLAYER_TWO_ID) {
@@ -344,8 +385,24 @@ public class RoomLobbyService {
         msg.setEffectiveMinionTypeCount(room.getEffectiveMinionTypeCount());
         msg.setPlayer1Character(room.getPlayer1Character());
         msg.setPlayer2Character(room.getPlayer2Character());
-        msg.setPlayer1ConfiguredMinions(copyMinions(room.getPlayer1ConfiguredMinions()));
-        msg.setPlayer2ConfiguredMinions(copyMinions(room.getPlayer2ConfiguredMinions()));
+        msg.setSharedConfiguredMinions(copyMinions(room.getSharedConfiguredMinions()));
+        msg.setPlayer1SharedSetupConfirmed(room.isPlayer1SharedSetupConfirmed());
+        msg.setPlayer2SharedSetupConfirmed(room.isPlayer2SharedSetupConfirmed());
+        if (room.getMode() == GameMode.DUEL && !room.getSharedConfiguredMinions().isEmpty()) {
+            msg.setPlayer1ConfiguredMinions(copyMinionsForCharacter(
+                    room.getSharedConfiguredMinions(),
+                    room.getPlayer1Character(),
+                    false
+            ));
+            msg.setPlayer2ConfiguredMinions(copyMinionsForCharacter(
+                    room.getSharedConfiguredMinions(),
+                    room.getPlayer2Character(),
+                    true
+            ));
+        } else {
+            msg.setPlayer1ConfiguredMinions(copyMinions(room.getPlayer1ConfiguredMinions()));
+            msg.setPlayer2ConfiguredMinions(copyMinions(room.getPlayer2ConfiguredMinions()));
+        }
         msg.setClosed(false);
         return msg;
     }
@@ -416,6 +473,34 @@ public class RoomLobbyService {
             copy.add(item);
         }
         return copy;
+    }
+
+    private static List<RoomConfiguredMinion> copyMinionsForCharacter(List<RoomConfiguredMinion> minions,
+                                                                      CharacterType character,
+                                                                      boolean forceDefaultNames) {
+        List<RoomConfiguredMinion> copy = copyMinions(minions);
+        for (RoomConfiguredMinion minion : copy) {
+            if (forceDefaultNames || minion.getName() == null || minion.getName().isBlank()) {
+                minion.setName(defaultNameForCharacter(character, minion.getType()));
+            }
+        }
+        return copy;
+    }
+
+    private static String defaultNameForCharacter(CharacterType character, String type) {
+        boolean demon = character == CharacterType.DEMON;
+        return switch (type == null ? "" : type.trim().toUpperCase()) {
+            case "FIGHTER" -> demon ? "MUZAN" : "TANJIRO";
+            case "ASSASSIN" -> demon ? "KOKUSHIBO" : "YORIICHI";
+            case "DPS" -> demon ? "DOMA" : "GIYU";
+            case "TANK" -> demon ? "AKAZA" : "KYOJURO";
+            case "SUPPORT" -> demon ? "NAKIME" : "INOSUKE";
+            default -> demon ? "DEMON" : "HUMAN";
+        };
+    }
+
+    private static CharacterType oppositeCharacter(CharacterType character) {
+        return character == CharacterType.DEMON ? CharacterType.HUMAN : CharacterType.DEMON;
     }
 
     private RoomState getRequiredEditableRoom(String roomId) {

@@ -1,3 +1,4 @@
+
 ### RESET
 POST http://localhost:8080/api/game/reset
 
@@ -21,7 +22,7 @@ Content-Type: application/json
 
 ###
 
-### MODE
+### MODE = DUEL
 POST http://localhost:8080/api/game/mode
 Content-Type: application/json
 
@@ -31,7 +32,7 @@ Content-Type: application/json
 
 ###
 
-### CHARACTER P1
+### CHARACTER P1 = HUMAN
 POST http://localhost:8080/api/game/character
 Content-Type: application/json
 
@@ -42,7 +43,7 @@ Content-Type: application/json
 
 ###
 
-### CHARACTER P2
+### CHARACTER P2 = DEMON
 POST http://localhost:8080/api/game/character
 Content-Type: application/json
 
@@ -53,13 +54,14 @@ Content-Type: application/json
 
 ###
 
-### SETUP P1
+### SETUP P1 (SHARED STRATEGY SET, NAME LEFT BLANK TO ALLOW DEFAULT FALLBACK)
 POST http://localhost:8080/api/game/setup/full/1
 Content-Type: application/json
 
 [
   {
     "type": "FIGHTER",
+    "name": "",
     "defenseFactor": 1,
     "strategy": "move up; done;"
   }
@@ -67,15 +69,16 @@ Content-Type: application/json
 
 ###
 
-### SETUP P2
+### SETUP P2 (MIRRORED SHARED SET WITH DEFAULT DEMON NAME)
 POST http://localhost:8080/api/game/setup/full/2
 Content-Type: application/json
 
 [
   {
     "type": "FIGHTER",
+    "name": "MUZAN",
     "defenseFactor": 1,
-    "strategy": "move down; done;"
+    "strategy": "move up; done;"
   }
 ]
 
@@ -86,8 +89,13 @@ POST http://localhost:8080/api/game/start
 
 ###
 
-### CHECK PHASE (ต้องเป็น FREE_SPAWN)
+### CHECK PHASE -> FREE_SPAWN
 GET http://localhost:8080/api/game/phase
+
+###
+
+### CHECK STATE -> NAMES SHOULD RESOLVE CORRECTLY
+GET http://localhost:8080/api/game/state
 
 ###
 
@@ -103,7 +111,7 @@ Content-Type: application/json
 
 ###
 
-### CHECK CURRENT PLAYER (ต้องเป็น 2)
+### CHECK CURRENT PLAYER -> 2
 GET http://localhost:8080/api/game/current-player
 
 ###
@@ -120,12 +128,12 @@ Content-Type: application/json
 
 ###
 
-### CHECK PHASE (ต้องเป็น BUY_HEX)
+### CHECK PHASE -> PLAYER_ACTION / BUY_HEX STEP
 GET http://localhost:8080/api/game/phase
 
 ###
 
-### BUY HEX (ได้ 1 ครั้ง)
+### BUY HEX ONCE -> SHOULD PASS
 POST http://localhost:8080/api/game/buy-hex
 Content-Type: application/json
 
@@ -136,7 +144,7 @@ Content-Type: application/json
 
 ###
 
-### BUY HEX ซ้ำ (ต้อง fail)
+### BUY HEX AGAIN IN SAME TURN -> SHOULD FAIL
 POST http://localhost:8080/api/game/buy-hex
 Content-Type: application/json
 
@@ -147,7 +155,7 @@ Content-Type: application/json
 
 ###
 
-### SPAWN ปกติ (ได้ 1 ครั้ง)
+### NORMAL SPAWN AFTER BUY HEX -> SHOULD PASS
 POST http://localhost:8080/api/game/spawn
 Content-Type: application/json
 
@@ -159,12 +167,18 @@ Content-Type: application/json
 
 ###
 
-### CHECK PHASE (ต้องเป็น ACTION)
-GET http://localhost:8080/api/game/phase
+### BUY HEX AFTER SPAWN IN SAME TURN -> SHOULD FAIL
+POST http://localhost:8080/api/game/buy-hex
+Content-Type: application/json
+
+{
+  "row": 3,
+  "col": 1
+}
 
 ###
 
-### SPAWN ซ้ำทันที (ต้อง fail)
+### SPAWN AGAIN IN SAME TURN -> SHOULD FAIL
 POST http://localhost:8080/api/game/spawn
 Content-Type: application/json
 
@@ -181,7 +195,7 @@ POST http://localhost:8080/api/game/end-turn
 
 ###
 
-### CHECK PHASE (ต้องกลับเป็น BUY_HEX)
+### CHECK PHASE -> PLAYER_ACTION / BUY_HEX STEP OF NEXT TURN
 GET http://localhost:8080/api/game/phase
 
 ###

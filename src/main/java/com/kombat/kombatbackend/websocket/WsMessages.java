@@ -132,6 +132,9 @@ public class WsMessages {
         private Integer effectiveMinionTypeCount;
         private CharacterType player1Character;
         private CharacterType player2Character;
+        private List<RoomConfiguredMinion> sharedConfiguredMinions = new ArrayList<>();
+        private boolean player1SharedSetupConfirmed;
+        private boolean player2SharedSetupConfirmed;
         private List<RoomConfiguredMinion> player1ConfiguredMinions = new ArrayList<>();
         private List<RoomConfiguredMinion> player2ConfiguredMinions = new ArrayList<>();
 
@@ -163,6 +166,12 @@ public class WsMessages {
         public void setPlayer1Character(CharacterType player1Character) { this.player1Character = player1Character; }
         public CharacterType getPlayer2Character() { return player2Character; }
         public void setPlayer2Character(CharacterType player2Character) { this.player2Character = player2Character; }
+        public List<RoomConfiguredMinion> getSharedConfiguredMinions() { return sharedConfiguredMinions; }
+        public void setSharedConfiguredMinions(List<RoomConfiguredMinion> sharedConfiguredMinions) { this.sharedConfiguredMinions = sharedConfiguredMinions; }
+        public boolean isPlayer1SharedSetupConfirmed() { return player1SharedSetupConfirmed; }
+        public void setPlayer1SharedSetupConfirmed(boolean player1SharedSetupConfirmed) { this.player1SharedSetupConfirmed = player1SharedSetupConfirmed; }
+        public boolean isPlayer2SharedSetupConfirmed() { return player2SharedSetupConfirmed; }
+        public void setPlayer2SharedSetupConfirmed(boolean player2SharedSetupConfirmed) { this.player2SharedSetupConfirmed = player2SharedSetupConfirmed; }
         public List<RoomConfiguredMinion> getPlayer1ConfiguredMinions() { return player1ConfiguredMinions; }
         public void setPlayer1ConfiguredMinions(List<RoomConfiguredMinion> player1ConfiguredMinions) { this.player1ConfiguredMinions = player1ConfiguredMinions; }
         public List<RoomConfiguredMinion> getPlayer2ConfiguredMinions() { return player2ConfiguredMinions; }
