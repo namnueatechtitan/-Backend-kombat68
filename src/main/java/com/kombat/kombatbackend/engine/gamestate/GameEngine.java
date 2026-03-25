@@ -104,6 +104,9 @@ public class GameEngine {
         if (gameState.getPhase() != TurnPhase.PLAYER_ACTION)
             return false;
 
+        if (spawnedThisTurn)
+            return false;
+
         if (boughtThisTurn)
             return false;
 

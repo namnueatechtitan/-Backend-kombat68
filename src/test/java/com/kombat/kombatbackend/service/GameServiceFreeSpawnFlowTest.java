@@ -57,7 +57,7 @@ class GameServiceFreeSpawnFlowTest {
     }
 
     @Test
-    void playerCanBuyHexAfterSpawningInSameTurn() {
+    void playerCannotBuyHexAfterSpawningInSameTurn() {
         GameService service = new GameService();
         service.initFullGame(buildRequest());
 
@@ -66,7 +66,19 @@ class GameServiceFreeSpawnFlowTest {
 
         assertTrue(service.spawn("FIGHTER", 0, 1));
 
+        assertFalse(service.buyHex(1, 2));
+    }
+
+    @Test
+    void playerCanBuyHexBeforeSpawningInSameTurn() {
+        GameService service = new GameService();
+        service.initFullGame(buildRequest());
+
+        assertTrue(service.spawn("FIGHTER", 0, 0));
+        assertTrue(service.spawn("FIGHTER", 7, 7));
+
         assertTrue(service.buyHex(1, 2));
+        assertTrue(service.spawn("FIGHTER", 0, 1));
     }
 
     @Test
