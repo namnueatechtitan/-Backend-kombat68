@@ -205,8 +205,8 @@ public class RoomLobbyService {
                 throw new IllegalStateException("Only the host can configure duel minions");
             }
             room.setSharedConfiguredMinions(copied);
-            room.setPlayer1ConfiguredMinions(copyMinionsForCharacter(copied, room.getPlayer1Character(), false));
-            room.setPlayer2ConfiguredMinions(copyMinionsForCharacter(copied, room.getPlayer2Character(), true));
+            room.setPlayer1ConfiguredMinions(copyMinionsWithResolvedNames(copied));
+            room.setPlayer2ConfiguredMinions(copyMinionsWithResolvedNames(copied));
             room.setPlayer1SharedSetupConfirmed(true);
             room.setPlayer2SharedSetupConfirmed(true);
             room.setSetupPhase(RoomSetupPhase.PRE_BATTLE);
@@ -219,8 +219,8 @@ public class RoomLobbyService {
             if (playerId != PLAYER_ONE_ID) {
                 throw new IllegalStateException("Only the host can configure auto minions");
             }
-            room.setPlayer1ConfiguredMinions(copyMinionsForCharacter(copied, room.getPlayer1Character(), false));
-            room.setPlayer2ConfiguredMinions(copyMinionsForCharacter(copied, room.getPlayer2Character(), true));
+            room.setPlayer1ConfiguredMinions(copyMinionsWithResolvedNames(copied));
+            room.setPlayer2ConfiguredMinions(copyMinionsWithResolvedNames(copied));
             room.setSetupPhase(RoomSetupPhase.PRE_BATTLE);
             touch(room);
             store.saveRoom(room);
@@ -401,16 +401,8 @@ public class RoomLobbyService {
         msg.setPlayer1SharedSetupConfirmed(room.isPlayer1SharedSetupConfirmed());
         msg.setPlayer2SharedSetupConfirmed(room.isPlayer2SharedSetupConfirmed());
         if (room.getMode() == GameMode.DUEL && !room.getSharedConfiguredMinions().isEmpty()) {
-            msg.setPlayer1ConfiguredMinions(copyMinionsForCharacter(
-                    room.getSharedConfiguredMinions(),
-                    room.getPlayer1Character(),
-                    false
-            ));
-            msg.setPlayer2ConfiguredMinions(copyMinionsForCharacter(
-                    room.getSharedConfiguredMinions(),
-                    room.getPlayer2Character(),
-                    true
-            ));
+            msg.setPlayer1ConfiguredMinions(copyMinionsWithResolvedNames(room.getSharedConfiguredMinions()));
+            msg.setPlayer2ConfiguredMinions(copyMinionsWithResolvedNames(room.getSharedConfiguredMinions()));
         } else {
             msg.setPlayer1ConfiguredMinions(copyMinions(room.getPlayer1ConfiguredMinions()));
             msg.setPlayer2ConfiguredMinions(copyMinions(room.getPlayer2ConfiguredMinions()));
@@ -491,28 +483,19 @@ public class RoomLobbyService {
         return copy;
     }
 
-    private static List<RoomConfiguredMinion> copyMinionsForCharacter(List<RoomConfiguredMinion> minions,
-                                                                      CharacterType character,
-                                                                      boolean forceDefaultNames) {
+    private static List<RoomConfiguredMinion> copyMinionsWithResolvedNames(List<RoomConfiguredMinion> minions) {
         List<RoomConfiguredMinion> copy = copyMinions(minions);
         for (RoomConfiguredMinion minion : copy) {
-            if (forceDefaultNames || minion.getName() == null || minion.getName().isBlank()) {
-                minion.setName(defaultNameForCharacter(character, minion.getType()));
-            }
+            minion.setName(resolveSharedName(minion.getName(), minion.getType()));
         }
         return copy;
     }
 
-    private static String defaultNameForCharacter(CharacterType character, String type) {
-        boolean demon = character == CharacterType.DEMON;
-        return switch (type == null ? "" : type.trim().toUpperCase()) {
-            case "FIGHTER" -> demon ? "MUZAN" : "TANJIRO";
-            case "ASSASSIN" -> demon ? "KOKUSHIBO" : "YORIICHI";
-            case "DPS" -> demon ? "DOMA" : "GIYU";
-            case "TANK" -> demon ? "AKAZA" : "KYOJURO";
-            case "SUPPORT" -> demon ? "NAKIME" : "INOSUKE";
-            default -> demon ? "DEMON" : "HUMAN";
-        };
+    private static String resolveSharedName(String name, String type) {
+        if (name != null && !name.isBlank()) {
+            return name.trim();
+        }
+        return type == null ? "MINION" : type.trim().toUpperCase();
     }
 
     private static CharacterType oppositeCharacter(CharacterType character) {

@@ -3,7 +3,6 @@ package com.kombat.kombatbackend.websocket;
 import com.kombat.kombatbackend.dto.GameStateDto;
 import com.kombat.kombatbackend.dto.GameStatusResponse;
 import com.kombat.kombatbackend.dto.MinionDto;
-import com.kombat.kombatbackend.engine.gamestate.CharacterType;
 import com.kombat.kombatbackend.engine.gamestate.GameMode;
 import com.kombat.kombatbackend.engine.gamestate.GamePhase;
 import com.kombat.kombatbackend.engine.gamestate.GameState;
@@ -226,14 +225,14 @@ public class RoomGameSessionService {
                 game.addMinion(
                         GameService.P1,
                         minion.getType(),
-                        resolvePlayerOneName(room.getPlayer1Character(), minion),
+                        resolveSharedName(minion),
                         minion.getDefenseFactor(),
                         minion.getStrategy()
                 );
                 game.addMinion(
                         GameService.P2,
                         minion.getType(),
-                        defaultNameForCharacter(room.getPlayer2Character(), minion.getType()),
+                        resolveSharedName(minion),
                         minion.getDefenseFactor(),
                         minion.getStrategy()
                 );
@@ -249,23 +248,11 @@ public class RoomGameSessionService {
         game.startGame();
     }
 
-    private static String resolvePlayerOneName(CharacterType character, RoomConfiguredMinion minion) {
+    private static String resolveSharedName(RoomConfiguredMinion minion) {
         if (minion.getName() != null && !minion.getName().isBlank()) {
-            return minion.getName();
+            return minion.getName().trim();
         }
-        return defaultNameForCharacter(character, minion.getType());
-    }
-
-    private static String defaultNameForCharacter(CharacterType character, String type) {
-        boolean demon = character == CharacterType.DEMON;
-        return switch (type == null ? "" : type.trim().toUpperCase()) {
-            case "FIGHTER" -> demon ? "MUZAN" : "TANJIRO";
-            case "ASSASSIN" -> demon ? "KOKUSHIBO" : "YORIICHI";
-            case "DPS" -> demon ? "DOMA" : "GIYU";
-            case "TANK" -> demon ? "AKAZA" : "KYOJURO";
-            case "SUPPORT" -> demon ? "NAKIME" : "INOSUKE";
-            default -> demon ? "DEMON" : "HUMAN";
-        };
+        return minion.getType() == null ? "MINION" : minion.getType().trim().toUpperCase();
     }
 
     private static GameStatusResponse buildLiveStatus(GameService game) {
