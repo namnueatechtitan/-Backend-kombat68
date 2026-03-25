@@ -181,7 +181,7 @@ public class GameWebSocketController {
 
         try {
             RoomState updated = lobbyService.submitMinionSetup(request.getRoomId(), playerId, request.getMinions());
-            if (updated.getMode() == GameMode.DUEL && lobbyService.canStart(updated)) {
+            if ((updated.getMode() == GameMode.DUEL || updated.getMode() == GameMode.AUTO) && lobbyService.canStart(updated)) {
                 roomGameSessionService.startRoomGame(updated);
                 lobbyService.markStarted(updated.getRoomId(), true);
                 RoomState startedRoom = lobbyService.getRoom(updated.getRoomId());

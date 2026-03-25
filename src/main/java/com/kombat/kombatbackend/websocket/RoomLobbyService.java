@@ -98,9 +98,9 @@ public class RoomLobbyService {
             throw new IllegalStateException("Not allowed to submit minion count in phase " + room.getSetupPhase());
         }
 
-        if (room.getMode() == GameMode.DUEL) {
+        if (usesHostManagedSetup(room.getMode())) {
             if (playerId != PLAYER_ONE_ID) {
-                throw new IllegalStateException("Only the host can choose duel minion count");
+                throw new IllegalStateException("Only the host can choose minion count in this room mode");
             }
             room.setPlayer1MinionTypeCount(count);
             room.setPlayer2MinionTypeCount(count);
@@ -140,9 +140,9 @@ public class RoomLobbyService {
             throw new IllegalStateException("Not allowed to select character in phase " + room.getSetupPhase());
         }
 
-        if (room.getMode() == GameMode.DUEL) {
+        if (usesHostManagedSetup(room.getMode())) {
             if (playerId != PLAYER_ONE_ID) {
-                throw new IllegalStateException("Player 1 chooses the duel character alignment");
+                throw new IllegalStateException("Player 1 chooses the character alignment in this room mode");
             }
 
             room.setPlayer1Character(character);
@@ -205,10 +205,22 @@ public class RoomLobbyService {
                 throw new IllegalStateException("Only the host can configure duel minions");
             }
             room.setSharedConfiguredMinions(copied);
-            room.setPlayer1ConfiguredMinions(copyMinions(copied));
-            room.setPlayer2ConfiguredMinions(copyMinions(copied));
+            room.setPlayer1ConfiguredMinions(copyMinionsForCharacter(copied, room.getPlayer1Character(), false));
+            room.setPlayer2ConfiguredMinions(copyMinionsForCharacter(copied, room.getPlayer2Character(), true));
             room.setPlayer1SharedSetupConfirmed(true);
             room.setPlayer2SharedSetupConfirmed(true);
+            room.setSetupPhase(RoomSetupPhase.PRE_BATTLE);
+            touch(room);
+            store.saveRoom(room);
+            return room;
+        }
+
+        if (room.getMode() == GameMode.AUTO) {
+            if (playerId != PLAYER_ONE_ID) {
+                throw new IllegalStateException("Only the host can configure auto minions");
+            }
+            room.setPlayer1ConfiguredMinions(copyMinionsForCharacter(copied, room.getPlayer1Character(), false));
+            room.setPlayer2ConfiguredMinions(copyMinionsForCharacter(copied, room.getPlayer2Character(), true));
             room.setSetupPhase(RoomSetupPhase.PRE_BATTLE);
             touch(room);
             store.saveRoom(room);
@@ -414,6 +426,10 @@ public class RoomLobbyService {
     }
 
     private static boolean requiresTwoHumanPlayers(GameMode mode) {
+        return mode == GameMode.DUEL || mode == GameMode.AUTO;
+    }
+
+    private static boolean usesHostManagedSetup(GameMode mode) {
         return mode == GameMode.DUEL || mode == GameMode.AUTO;
     }
 

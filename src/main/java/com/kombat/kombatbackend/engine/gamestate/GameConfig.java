@@ -80,13 +80,13 @@ public final class GameConfig {
         return new GameConfig(
                 200,
                 300,
-                2000,
-                500,
+                1000,
+                350,
                 120,
                 10000,
                 3,
-                40,
-                10
+                20,
+                8
         );
     }
 
