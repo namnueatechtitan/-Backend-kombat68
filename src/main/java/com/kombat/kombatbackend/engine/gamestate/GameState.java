@@ -161,7 +161,19 @@ public class GameState {
         }
 
         try {
-            return kinds.get(MinionType.fromUserText(q));
+            MinionKindDef byType = kinds.get(MinionType.fromUserText(q));
+            if (byType != null) {
+                return byType;
+            }
+
+            // Frontend บางเวอร์ชันส่ง type ผิด/ค้างค่าเดิม (เช่น "figther")
+            // ถ้าผู้เล่นมี minion ที่ setup ไว้เพียงชนิดเดียว ให้ fallback ไปชนิดนั้น
+            // เพื่อไม่ให้การ spawn fail ทั้งหมดจาก type string ที่ไม่ตรงกับ setup จริง
+            if (kinds.size() == 1) {
+                return kinds.values().iterator().next();
+            }
+
+            return null;
         } catch (RuntimeException ignored) {
             return null;
         }
